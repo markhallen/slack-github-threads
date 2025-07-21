@@ -58,6 +58,105 @@ post '/ghcomment' do
   "✅ Posted to GitHub: #{comment_url}"
 end
 
+post '/message-shortcut' do
+  request.body.rewind
+  raw_payload = request.body.read
+  parsed = URI.decode_www_form(raw_payload).to_h
+  payload = JSON.parse(parsed['payload'])
+
+  if payload['type'] == 'message_action'
+    # Message shortcuts have access to message context automatically
+    trigger_id = payload['trigger_id']
+    channel_id = payload.dig('channel', 'id')
+    message_ts = payload.dig('message', 'ts')
+    thread_ts = payload.dig('message', 'thread_ts') || message_ts
+    
+    puts "DEBUG: Message shortcut - Channel: #{channel_id}, Thread: #{thread_ts}"
+
+    view = {
+      type: "modal",
+      callback_id: "gh_comment_modal_message",
+      title: { type: "plain_text", text: "Post Thread to GitHub" },
+      submit: { type: "plain_text", text: "Post" },
+      close: { type: "plain_text", text: "Cancel" },
+      private_metadata: JSON.generate({
+        channel_id: channel_id,
+        thread_ts: thread_ts
+      }),
+      blocks: [
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: "This will post the entire thread to a GitHub issue." }
+        },
+        {
+          type: "input",
+          block_id: "issue_block",
+          label: { type: "plain_text", text: "GitHub Issue URL" },
+          element: {
+            type: "plain_text_input",
+            action_id: "issue_url",
+            placeholder: { type: "plain_text", text: "https://github.com/org/repo/issues/123" }
+          }
+        }
+      ]
+    }
+
+    uri = URI("https://slack.com/api/views.open")
+    req = Net::HTTP::Post.new(uri)
+    req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
+    req['Content-Type'] = 'application/json'
+    req.body = { trigger_id: trigger_id, view: view }.to_json
+
+    res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+    status res.code.to_i
+    body res.body
+
+  elsif payload['type'] == 'view_submission'
+    metadata = JSON.parse(payload.dig('view', 'private_metadata'))
+    channel_id = metadata['channel_id']
+    thread_ts = metadata['thread_ts']
+    issue_url = payload.dig('view', 'state', 'values', 'issue_block', 'issue_url', 'value')
+
+    puts "DEBUG: Message modal submission - Issue: #{issue_url}"
+
+    unless issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
+      status 200
+      return json(response_action: 'errors', errors: { issue_block: 'Invalid GitHub issue URL.' })
+    end
+
+    org, repo, issue_number = $1, $2, $3
+
+    messages = get_thread_messages(channel_id, thread_ts)
+    thread_text = messages.map { |m|
+      text = m['text'] || ''
+      # Decode HTML entities that Slack uses
+      text = text.gsub('&gt;', '>')
+                 .gsub('&lt;', '<')
+                 .gsub('&amp;', '&')
+                 .gsub('&quot;', '"')
+                 .gsub('&#39;', "'")
+
+      # Use real name if available, otherwise fall back to user ID
+      user_display = m['user_name'] || m['user'] || 'unknown'
+
+      "**#{user_display}**: #{text}"
+    }.join("\n\n")
+
+    if thread_text.strip.empty?
+      status 200
+      return json(response_action: 'errors', errors: { issue_block: 'No messages found in that thread.' })
+    end
+
+    comment_url = github_comment(issue_number, org, repo, thread_text)
+    post_slack_reply(channel_id, thread_ts, comment_url)
+
+    status 200
+    body '' # Required response for modals
+  else
+    halt 400, "Unsupported payload type for message shortcut"
+  end
+end
+
 post '/shortcut' do
   request.body.rewind
   raw_payload = request.body.read
