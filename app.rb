@@ -51,7 +51,11 @@ post '/ghcomment' do
     halt 400, "Invalid GitHub issue URL."
   end
 
-  github_comment(issue_number, org, repo, thread_text)
+  comment_url = github_comment(issue_number, org, repo, thread_text)
+  post_slack_reply(channel_id, thread_ts, comment_url)
+
+  status 200
+  "✅ Posted to GitHub: #{comment_url}"
 end
 
 post '/shortcut' do
@@ -159,7 +163,9 @@ post '/shortcut' do
       return json(response_action: 'errors', errors: { thread_block: 'No messages found in that thread.' })
     end
 
-    github_comment(issue_number, org, repo, thread_text)
+    comment_url = github_comment(issue_number, org, repo, thread_text)
+    post_slack_reply(channel_id, thread_ts, comment_url)
+
     status 200
     body '' # Required response for modals
   else
@@ -228,5 +234,36 @@ def github_comment(issue_number, org, repo, body)
     halt 500, "GitHub error: #{res.body}"
   end
 
-  "Posted thread to GitHub issue ##{issue_number}"
+  # Parse the response to get the comment URL
+  comment_data = JSON.parse(res.body)
+  comment_url = comment_data['html_url']
+
+  puts "DEBUG: Successfully posted to GitHub issue ##{issue_number}, comment URL: #{comment_url}"
+  comment_url
+end
+
+def post_slack_reply(channel, thread_ts, comment_url)
+  uri = URI("https://slack.com/api/chat.postMessage")
+  req = Net::HTTP::Post.new(uri)
+  req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
+  req['Content-Type'] = 'application/json'
+
+  message = {
+    channel: channel,
+    thread_ts: thread_ts,
+    text: "✅ Thread posted to GitHub: #{comment_url}",
+    unfurl_links: false,
+    unfurl_media: false
+  }
+
+  req.body = message.to_json
+
+  res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+  response_data = JSON.parse(res.body)
+
+  if response_data['ok']
+    puts "DEBUG: Successfully posted Slack reply"
+  else
+    puts "DEBUG: Failed to post Slack reply: #{response_data['error']}"
+  end
 end
