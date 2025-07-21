@@ -34,6 +34,29 @@ post '/ghcomment' do
   github_comment(issue_number, org, repo, thread_text)
 end
 
+post '/shortcut' do
+  request.body.rewind
+  payload = JSON.parse(params['payload'])
+
+  channel_id = payload.dig('channel', 'id')
+  message_ts = payload.dig('message', 'ts')
+  thread_ts = payload.dig('message', 'thread_ts') || message_ts
+  issue_url = ENV['DEFAULT_GITHUB_ISSUE_URL'] # fallback or get from interactive form
+
+  halt 400, "Missing thread_ts" unless thread_ts
+
+  messages = get_thread_messages(channel_id, thread_ts)
+  thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
+
+  if issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
+    org, repo, issue_number = $1, $2, $3
+  else
+    halt 400, "Invalid GitHub issue URL."
+  end
+
+  github_comment(issue_number, org, repo, thread_text)
+end
+
 def get_thread_messages(channel, thread_ts)
   uri = URI("https://slack.com/api/conversations.replies?channel=#{channel}&ts=#{thread_ts}")
   req = Net::HTTP::Get.new(uri)
