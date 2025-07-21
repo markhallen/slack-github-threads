@@ -265,6 +265,7 @@ post '/shortcut' do
 end
 
 def get_thread_messages(channel, thread_ts)
+  puts "DEBUG: Fetching messages for channel #{channel}, thread #{thread_ts}"
   uri = URI("https://slack.com/api/conversations.replies?channel=#{channel}&ts=#{thread_ts}")
   req = Net::HTTP::Get.new(uri)
   req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
@@ -275,11 +276,21 @@ def get_thread_messages(channel, thread_ts)
   
   unless response['ok']
     puts "ERROR: Slack API failed: #{response['error']}"
+    puts "ERROR: This might be due to:"
+    puts "ERROR: 1. Missing OAuth scopes (needs channels:history, groups:history)" 
+    puts "ERROR: 2. Bot not added to the channel"
+    puts "ERROR: 3. Invalid channel or timestamp"
     return []
   end
   
   messages = response['messages'] || []
   puts "DEBUG: Found #{messages.length} messages in thread"
+
+  # Return early if no messages found
+  if messages.empty?
+    puts "DEBUG: No messages found, returning empty array"
+    return []
+  end
 
   # Get user info for all unique users in the thread
   user_ids = messages.map { |m| m['user'] }.compact.uniq
