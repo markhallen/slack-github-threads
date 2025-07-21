@@ -36,25 +36,69 @@ end
 
 post '/shortcut' do
   request.body.rewind
-  payload = JSON.parse(params['payload'])
+  raw_payload = request.body.read
+  parsed = URI.decode_www_form(raw_payload).to_h
+  payload = JSON.parse(parsed['payload'])
 
-  channel_id = payload.dig('channel', 'id')
-  message_ts = payload.dig('message', 'ts')
-  thread_ts = payload.dig('message', 'thread_ts') || message_ts
-  issue_url = ENV['DEFAULT_GITHUB_ISSUE_URL'] # fallback or get from interactive form
+  if payload['type'] == 'shortcut'
+    # Open a modal to collect GitHub issue URL
+    trigger_id = payload['trigger_id']
+    view = {
+      type: "modal",
+      callback_id: "gh_comment_modal",
+      title: { type: "plain_text", text: "Post Thread to GitHub" },
+      submit: { type: "plain_text", text: "Post" },
+      close: { type: "plain_text", text: "Cancel" },
+      private_metadata: JSON.generate({
+        channel_id: payload.dig('channel', 'id'),
+        message_ts: payload.dig('message', 'ts'),
+        thread_ts: payload.dig('message', 'thread_ts') || payload.dig('message', 'ts')
+      }),
+      blocks: [
+        {
+          type: "input",
+          block_id: "issue_block",
+          label: { type: "plain_text", text: "GitHub Issue URL" },
+          element: {
+            type: "plain_text_input",
+            action_id: "issue_url",
+            placeholder: { type: "plain_text", text: "https://github.com/org/repo/issues/123" }
+          }
+        }
+      ]
+    }
 
-  halt 400, "Missing thread_ts" unless thread_ts
+    uri = URI("https://slack.com/api/views.open")
+    req = Net::HTTP::Post.new(uri)
+    req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
+    req['Content-Type'] = 'application/json'
+    req.body = { trigger_id: trigger_id, view: view }.to_json
 
-  messages = get_thread_messages(channel_id, thread_ts)
-  thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
+    res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+    status res.code.to_i
+    body res.body
 
-  if issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
-    org, repo, issue_number = $1, $2, $3
+  elsif payload['type'] == 'view_submission'
+    metadata = JSON.parse(payload.dig('view', 'private_metadata'))
+    channel_id = metadata['channel_id']
+    thread_ts = metadata['thread_ts']
+    issue_url = payload.dig('view', 'state', 'values', 'issue_block', 'issue_url', 'value')
+
+    messages = get_thread_messages(channel_id, thread_ts)
+    thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
+
+    if issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
+      org, repo, issue_number = $1, $2, $3
+    else
+      halt 400, "Invalid GitHub issue URL."
+    end
+
+    github_comment(issue_number, org, repo, thread_text)
+    status 200
+    body '' # Required response for modals
   else
-    halt 400, "Invalid GitHub issue URL."
+    halt 400, "Unsupported payload type"
   end
-
-  github_comment(issue_number, org, repo, thread_text)
 end
 
 def get_thread_messages(channel, thread_ts)
