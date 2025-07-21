@@ -30,7 +30,7 @@ post '/ghcomment' do
   halt 400, "Missing thread." unless thread_ts
 
   messages = get_thread_messages(channel_id, thread_ts)
-  thread_text = messages.map { |m| 
+  thread_text = messages.map { |m|
     text = m['text'] || ''
     # Decode HTML entities that Slack uses
     text = text.gsub('&gt;', '>')
@@ -133,7 +133,7 @@ post '/shortcut' do
     org, repo, issue_number = $1, $2, $3
 
     messages = get_thread_messages(channel_id, thread_ts)
-    thread_text = messages.map { |m| 
+    thread_text = messages.map { |m|
       text = m['text'] || ''
       # Decode HTML entities that Slack uses
       text = text.gsub('&gt;', '>')
