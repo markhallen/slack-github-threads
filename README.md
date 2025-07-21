@@ -60,10 +60,17 @@ GITHUB_TOKEN=ghp_your-github-personal-access-token
 2. Create a new app or use an existing one
 3. Go to "OAuth & Permissions"
 4. Add the following bot token scopes:
-   - `channels:history`
-   - `groups:history`
-   - `im:history`
-   - `mpim:history`
+   - `channels:history` - Read messages in public channels
+   - `channels:read` - List public channels  
+   - `channels:join` - Join public channels automatically
+   - `groups:history` - Read messages in private channels
+   - `groups:read` - List private channels
+   - `im:history` - Read direct messages
+   - `mpim:history` - Read group direct messages
+   - `users:read` - Get user information for name resolution
+   - `chat:write` - Post reply messages
+   
+   **Note**: Even with these scopes, the bot may still need to be added to private channels manually.
 5. Install the app to your workspace
 6. Copy the "Bot User OAuth Token"
 

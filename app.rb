@@ -278,15 +278,33 @@ def get_thread_messages(channel, thread_ts)
     puts "ERROR: Slack API failed: #{response['error']}"
     case response['error']
     when 'not_in_channel'
-      puts "ERROR: Bot not in channel - user needs to add bot to channel"
+      puts "ERROR: Bot not in channel - attempting to join channel automatically"
+      # Try to join the channel automatically
+      if try_join_channel(channel)
+        puts "DEBUG: Successfully joined channel, retrying message fetch"
+        # Retry the original request
+        retry_res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+        retry_response = JSON.parse(retry_res.body)
+        if retry_response['ok']
+          response = retry_response
+        else
+          puts "ERROR: Still failed after joining channel: #{retry_response['error']}"
+          return []
+        end
+      else
+        puts "ERROR: Failed to join channel automatically - user needs to add bot manually"
+        return []
+      end
     when 'missing_scope'
       puts "ERROR: Missing OAuth scopes - needs channels:history and/or groups:history"
+      return []
     when 'channel_not_found'
       puts "ERROR: Channel not found - invalid channel ID"
+      return []
     else
       puts "ERROR: Unknown error: #{response['error']}"
+      return []
     end
-    return []
   end
 
   messages = response['messages'] || []
@@ -344,6 +362,26 @@ def get_thread_messages(channel, thread_ts)
   end
 
   messages
+end
+
+def try_join_channel(channel)
+  puts "DEBUG: Attempting to join channel #{channel}"
+  uri = URI("https://slack.com/api/conversations.join")
+  req = Net::HTTP::Post.new(uri)
+  req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
+  req['Content-Type'] = 'application/json'
+  req.body = { channel: channel }.to_json
+
+  res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+  response = JSON.parse(res.body)
+  
+  if response['ok']
+    puts "DEBUG: Successfully joined channel #{channel}"
+    return true
+  else
+    puts "DEBUG: Failed to join channel #{channel}: #{response['error']}"
+    return false
+  end
 end
 
 def github_comment(issue_number, org, repo, body)
