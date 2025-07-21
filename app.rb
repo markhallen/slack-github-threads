@@ -172,8 +172,15 @@ post '/shortcut' do
     req.body = { trigger_id: trigger_id, view: view }.to_json
 
     res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-    status res.code.to_i
-    body res.body
+
+    # For message shortcuts, return empty response if modal opened successfully
+    if res.code.to_i == 200
+      status 200
+      body ''
+    else
+      status res.code.to_i
+      body res.body
+    end
 
   elsif payload['type'] == 'view_submission'
     callback_id = payload.dig('view', 'callback_id')
