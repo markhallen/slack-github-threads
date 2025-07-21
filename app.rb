@@ -374,7 +374,7 @@ def try_join_channel(channel)
 
   res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
   response = JSON.parse(res.body)
-  
+
   if response['ok']
     puts "DEBUG: Successfully joined channel #{channel}"
     return true
