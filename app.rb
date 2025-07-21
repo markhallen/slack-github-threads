@@ -48,23 +48,35 @@ post '/shortcut' do
   payload = JSON.parse(parsed['payload'])
 
   if payload['type'] == 'shortcut'
-    # Open a modal to collect GitHub issue URL
+    # Open a modal to collect both Slack thread URL and GitHub issue URL
     trigger_id = payload['trigger_id']
+    puts "DEBUG: Global shortcut triggered"
+    
     view = {
       type: "modal",
       callback_id: "gh_comment_modal",
       title: { type: "plain_text", text: "Post Thread to GitHub" },
       submit: { type: "plain_text", text: "Post" },
       close: { type: "plain_text", text: "Cancel" },
-      private_metadata: JSON.generate({
-        channel_id: payload.dig('channel', 'id'),
-        message_ts: payload.dig('message', 'ts'),
-        thread_ts: payload.dig('message', 'thread_ts') || payload.dig('message', 'ts')
-      }),
+      private_metadata: "{}",
       blocks: [
         {
+          type: "section",
+          text: { type: "mrkdwn", text: "To get the thread URL: Right-click on any message in the thread → *Copy link*" }
+        },
+        {
           type: "input",
-          block_id: "issue_block",
+          block_id: "thread_block",
+          label: { type: "plain_text", text: "Slack Thread URL" },
+          element: {
+            type: "plain_text_input",
+            action_id: "thread_url",
+            placeholder: { type: "plain_text", text: "Paste the thread link here..." }
+          }
+        },
+        {
+          type: "input",
+          block_id: "issue_block", 
           label: { type: "plain_text", text: "GitHub Issue URL" },
           element: {
             type: "plain_text_input",
@@ -86,10 +98,23 @@ post '/shortcut' do
     body res.body
 
   elsif payload['type'] == 'view_submission'
-    metadata = JSON.parse(payload.dig('view', 'private_metadata'))
-    channel_id = metadata['channel_id']
-    thread_ts = metadata['thread_ts']
+    thread_url = payload.dig('view', 'state', 'values', 'thread_block', 'thread_url', 'value')
     issue_url = payload.dig('view', 'state', 'values', 'issue_block', 'issue_url', 'value')
+
+    puts "DEBUG: Thread URL: #{thread_url}"
+    puts "DEBUG: Issue URL: #{issue_url}"
+
+    # Parse Slack thread URL - handles multiple formats
+    if thread_url =~ %r{https://[\w-]+\.slack\.com/archives/([^/]+)/p(\d+)(?:\?thread_ts=(\d+\.\d+))?}
+      channel_id = $1
+      message_ts = "#{$2[0..-7]}.#{$2[-6..-1]}"
+      thread_ts = $3 || message_ts
+    else
+      status 200
+      return json(response_action: 'errors', errors: { thread_block: 'Invalid Slack URL format. Please copy the link from a message in the thread.' })
+    end
+
+    puts "DEBUG: Parsed Channel: #{channel_id}, Thread: #{thread_ts}"
 
     unless issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
       status 200
@@ -102,6 +127,11 @@ post '/shortcut' do
     thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
 
     puts "DEBUG: Channel: #{channel_id}, Thread: #{thread_ts}, Messages: #{messages.length}, Text: '#{thread_text[0..100]}'"
+
+    if thread_text.strip.empty?
+      status 200
+      return json(response_action: 'errors', errors: { thread_block: 'No messages found in that thread.' })
+    end
 
     github_comment(issue_number, org, repo, thread_text)
     status 200
