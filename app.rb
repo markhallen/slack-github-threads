@@ -4,6 +4,12 @@ require 'net/http'
 require 'uri'
 require 'dotenv/load'
 
+# Add some startup logging
+puts "Starting gh-commenter app..."
+puts "RACK_ENV: #{ENV['RACK_ENV']}"
+puts "PORT: #{ENV['PORT']}"
+puts "Environment variables loaded: #{ENV.keys.grep(/GITHUB|SLACK/).join(', ')}"
+
 get '/up' do
   status 200
   'OK'

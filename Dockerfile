@@ -1,10 +1,13 @@
 FROM ruby:3.2
 
 WORKDIR /app
-COPY . .
-
-RUN apt-get update -qq && apt-get install -y build-essential libpq-dev
+COPY Gemfile Gemfile.lock ./
 RUN gem install bundler && bundle install
 
+COPY . .
+
 ENV RACK_ENV=production
-CMD ["bundle", "exec", "thin", "start", "-R", "config.ru", "-p", "3000"]
+ENV PORT=80
+EXPOSE 80
+
+CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
