@@ -270,8 +270,16 @@ def get_thread_messages(channel, thread_ts)
   req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
   res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
 
+  puts "DEBUG: Slack API conversations.replies response: #{res.body}"
   response = JSON.parse(res.body)
+  
+  unless response['ok']
+    puts "ERROR: Slack API failed: #{response['error']}"
+    return []
+  end
+  
   messages = response['messages'] || []
+  puts "DEBUG: Found #{messages.length} messages in thread"
 
   # Get user info for all unique users in the thread
   user_ids = messages.map { |m| m['user'] }.compact.uniq
