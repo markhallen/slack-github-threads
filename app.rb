@@ -51,7 +51,7 @@ post '/shortcut' do
     # Open a modal to collect both Slack thread URL and GitHub issue URL
     trigger_id = payload['trigger_id']
     puts "DEBUG: Global shortcut triggered"
-    
+
     view = {
       type: "modal",
       callback_id: "gh_comment_modal",
@@ -76,7 +76,7 @@ post '/shortcut' do
         },
         {
           type: "input",
-          block_id: "issue_block", 
+          block_id: "issue_block",
           label: { type: "plain_text", text: "GitHub Issue URL" },
           element: {
             type: "plain_text_input",
