@@ -30,7 +30,16 @@ post '/ghcomment' do
   halt 400, "Missing thread." unless thread_ts
 
   messages = get_thread_messages(channel_id, thread_ts)
-  thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
+  thread_text = messages.map { |m| 
+    text = m['text'] || ''
+    # Decode HTML entities that Slack uses
+    text = text.gsub('&gt;', '>')
+               .gsub('&lt;', '<')
+               .gsub('&amp;', '&')
+               .gsub('&quot;', '"')
+               .gsub('&#39;', "'")
+    "*#{m['user'] || 'unknown'}*: #{text}"
+  }.join("\n\n")
 
   if issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
     org, repo, issue_number = $1, $2, $3
@@ -124,7 +133,16 @@ post '/shortcut' do
     org, repo, issue_number = $1, $2, $3
 
     messages = get_thread_messages(channel_id, thread_ts)
-    thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
+    thread_text = messages.map { |m| 
+      text = m['text'] || ''
+      # Decode HTML entities that Slack uses
+      text = text.gsub('&gt;', '>')
+                 .gsub('&lt;', '<')
+                 .gsub('&amp;', '&')
+                 .gsub('&quot;', '"')
+                 .gsub('&#39;', "'")
+      "*#{m['user'] || 'unknown'}*: #{text}"
+    }.join("\n\n")
 
     puts "DEBUG: Channel: #{channel_id}, Thread: #{thread_ts}, Messages: #{messages.length}, Text: '#{thread_text[0..100]}'"
 
