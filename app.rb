@@ -38,7 +38,11 @@ post '/ghcomment' do
                .gsub('&amp;', '&')
                .gsub('&quot;', '"')
                .gsub('&#39;', "'")
-    "*#{m['user'] || 'unknown'}*: #{text}"
+    
+    # Use real name if available, otherwise fall back to user ID
+    user_display = m['user_name'] || m['user'] || 'unknown'
+    
+    "**#{user_display}**: #{text}"
   }.join("\n\n")
 
   if issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
@@ -141,7 +145,11 @@ post '/shortcut' do
                  .gsub('&amp;', '&')
                  .gsub('&quot;', '"')
                  .gsub('&#39;', "'")
-      "*#{m['user'] || 'unknown'}*: #{text}"
+      
+      # Use real name if available, otherwise fall back to user ID
+      user_display = m['user_name'] || m['user'] || 'unknown'
+      
+      "**#{user_display}**: #{text}"
     }.join("\n\n")
 
     puts "DEBUG: Channel: #{channel_id}, Thread: #{thread_ts}, Messages: #{messages.length}, Text: '#{thread_text[0..100]}'"
@@ -164,7 +172,36 @@ def get_thread_messages(channel, thread_ts)
   req = Net::HTTP::Get.new(uri)
   req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
   res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-  JSON.parse(res.body)['messages'] || []
+  
+  response = JSON.parse(res.body)
+  messages = response['messages'] || []
+  
+  # Get user info for all unique users in the thread
+  user_ids = messages.map { |m| m['user'] }.compact.uniq
+  user_names = {}
+  
+  user_ids.each do |user_id|
+    user_uri = URI("https://slack.com/api/users.info?user=#{user_id}")
+    user_req = Net::HTTP::Get.new(user_uri)
+    user_req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
+    user_res = Net::HTTP.start(user_uri.hostname, user_uri.port, use_ssl: true) { |http| http.request(user_req) }
+    user_data = JSON.parse(user_res.body)
+    
+    if user_data['ok'] && user_data['user']
+      user_names[user_id] = user_data['user']['real_name'] || user_data['user']['display_name'] || user_data['user']['name'] || user_id
+    else
+      user_names[user_id] = user_id
+    end
+  end
+  
+  # Add user names to messages
+  messages.each do |message|
+    if message['user'] && user_names[message['user']]
+      message['user_name'] = user_names[message['user']]
+    end
+  end
+  
+  messages
 end
 
 def github_comment(issue_number, org, repo, body)
