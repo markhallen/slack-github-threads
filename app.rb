@@ -4,6 +4,11 @@ require 'net/http'
 require 'uri'
 require 'dotenv/load'
 
+get '/up' do
+  status 200
+  'OK'
+end
+
 post '/ghcomment' do
   issue_url = params['text']&.strip
   channel_id = params['channel_id']
