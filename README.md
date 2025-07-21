@@ -159,19 +159,62 @@ docker run -p 3000:3000 --env-file .env gh-commenter
 ## Project Structure
 
 ```
-├── app.rb              # Main Sinatra application
-├── config.ru           # Rack configuration
-├── Gemfile             # Ruby dependencies
-├── Dockerfile          # Docker configuration
+├── app.rb                      # Main Sinatra application
+├── config.ru                   # Rack configuration
+├── Gemfile                     # Ruby dependencies
+├── Dockerfile                  # Docker configuration
+├── Rakefile                    # Task definitions and test runner
+├── lib/                        # Application modules
+│   ├── services/               # Business logic services
+│   │   ├── slack_service.rb    # Slack API interactions
+│   │   ├── github_service.rb   # GitHub API interactions
+│   │   ├── text_processor.rb   # Message formatting and parsing
+│   │   └── comment_service.rb  # Main orchestration service
+│   └── helpers/                # Helper modules
+│       └── modal_builder.rb    # Slack modal construction
+├── test/                       # Test suite
+│   ├── test_helper.rb          # Test configuration and helpers
+│   ├── test_app.rb             # Integration tests
+│   └── services/               # Service unit tests
+│       ├── test_slack_service.rb
+│       ├── test_github_service.rb
+│       └── test_text_processor.rb
 ├── config/
-│   └── deploy.yml      # Kamal deployment configuration
+│   └── deploy.yml              # Kamal deployment configuration
 └── .kamal/
-    └── secrets         # Kamal secrets configuration
+    └── secrets                 # Kamal secrets configuration
 ```
+
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+bundle exec rake test
+
+# Run specific test groups
+bundle exec rake test_services
+bundle exec rake test_app
+
+# Check syntax of all files
+bundle exec rake syntax
+```
+
+### Code Organization
+
+The application follows Sinatra best practices with clear separation of concerns:
+
+- **Services**: Handle external API interactions and business logic
+- **Helpers**: Provide utility functions and UI components  
+- **Controllers**: Slim route handlers that delegate to services
+- **Tests**: Comprehensive test coverage using Minitest with WebMock for API stubbing
 
 ## API Endpoints
 
+- `GET /up` - Health check endpoint
 - `POST /ghcomment` - Processes Slack slash command and posts to GitHub
+- `POST /shortcut` - Handles Slack shortcuts (global and message) and modal submissions
 
 ## Contributing
 
