@@ -100,6 +100,8 @@ post '/shortcut' do
 
     messages = get_thread_messages(channel_id, thread_ts)
     thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
+    
+    puts "DEBUG: Channel: #{channel_id}, Thread: #{thread_ts}, Messages: #{messages.length}, Text: '#{thread_text[0..100]}'"
 
     github_comment(issue_number, org, repo, thread_text)
     status 200
