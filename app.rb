@@ -39,6 +39,20 @@ post '/ghcomment' do
                .gsub('&quot;', '"')
                .gsub('&#39;', "'")
 
+    # Replace user mentions with actual names
+    if m['user_mentions']
+      original_text = text.dup
+      m['user_mentions'].each do |user_id, user_name|
+        if text.include?("<@#{user_id}>")
+          puts "DEBUG: Replacing <@#{user_id}> with @#{user_name}"
+          text = text.gsub("<@#{user_id}>", "@#{user_name}")
+        end
+      end
+      if original_text != text
+        puts "DEBUG: Text changed from '#{original_text}' to '#{text}'"
+      end
+    end
+
     # Use real name if available, otherwise fall back to user ID
     user_display = m['user_name'] || m['user'] || 'unknown'
 
@@ -213,6 +227,20 @@ post '/shortcut' do
                  .gsub('&quot;', '"')
                  .gsub('&#39;', "'")
 
+      # Replace user mentions with actual names
+      if m['user_mentions']
+        original_text = text.dup
+        m['user_mentions'].each do |user_id, user_name|
+          if text.include?("<@#{user_id}>")
+            puts "DEBUG: Replacing <@#{user_id}> with @#{user_name}"
+            text = text.gsub("<@#{user_id}>", "@#{user_name}")
+          end
+        end
+        if original_text != text
+          puts "DEBUG: Text changed from '#{original_text}' to '#{text}'"
+        end
+      end
+
       # Use real name if available, otherwise fall back to user ID
       user_display = m['user_name'] || m['user'] || 'unknown'
 
@@ -247,9 +275,20 @@ def get_thread_messages(channel, thread_ts)
 
   # Get user info for all unique users in the thread
   user_ids = messages.map { |m| m['user'] }.compact.uniq
+
+  # Also extract user IDs from mentions in message text
+  mentioned_user_ids = []
+  messages.each do |message|
+    text = message['text'] || ''
+    mentions = text.scan(/<@([A-Z0-9]+)>/).flatten
+    mentioned_user_ids.concat(mentions)
+  end
+
+  # Combine all user IDs
+  all_user_ids = (user_ids + mentioned_user_ids).uniq
   user_names = {}
 
-  user_ids.each do |user_id|
+  all_user_ids.each do |user_id|
     user_uri = URI("https://slack.com/api/users.info?user=#{user_id}")
     user_req = Net::HTTP::Get.new(user_uri)
     user_req['Authorization'] = "Bearer #{ENV['SLACK_BOT_TOKEN']}"
@@ -268,12 +307,15 @@ def get_thread_messages(channel, thread_ts)
     end
   end
 
-  # Add user names to messages
+  # Add user names to messages and extract mentions
   messages.each do |message|
     if message['user'] && user_names[message['user']]
       message['user_name'] = user_names[message['user']]
       puts "DEBUG: Message from #{message['user']} assigned name: #{message['user_name']}"
     end
+
+    # Add user mentions mapping to each message
+    message['user_mentions'] = user_names
   end
 
   messages
