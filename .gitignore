@@ -1,0 +1,101 @@
+# Dependencies
+/vendor/
+/.bundle/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+/log/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+/coverage/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ruby version managers
+.rbenv-version
+.rvmrc
+
+# Bundler
+/vendor/bundle/
+/lib/bundler/man/
+
+# Sass
+.sass-cache/
+
+# RubyMine
+/.idea
+/coverage/
+/InsightfulTestInsights_angular-cli-testing
+
+# Simplecov
+coverage/
+
+# Temporary files
+/tmp/
+
+# Kamal secrets and deployment
+.kamal/secrets
+.kamal/lock
+
+# Docker
+.dockerignore
+
+# Backup files
+*.bak
+*.backup
+
+# Test files
+/test/tmp/
+/test/version_tmp/
+
+# Documentation
+/doc/
+/rdoc/
+.yardoc/
+.yard/
+
+# Spring files
+/spring/*.pid
+
+# Capistrano
+/config/deploy/*
+!/config/deploy.rb
+/shared/
+
+# Rails (if applicable)
+/config/master.key
+/config/credentials.yml.enc
+
+# Node modules (if any frontend tools are used)
+node_modules/
+npm-debug.log*
+
+# MacOS
+*.dSYM/

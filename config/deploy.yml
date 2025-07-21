@@ -1,0 +1,19 @@
+service: my-gh-commenter
+image: markhallen/gh-commenter
+servers:
+  web:
+    - 23.88.45.191
+proxy:
+  ssl: true
+  host: gh-commenter.markhallen.dev
+registry:
+  server: ghcr.io
+  username: markhallen
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+env:
+  secret:
+    - GITHUB_TOKEN
+    - SLACK_BOT_TOKEN
+builder:
+  arch: amd64
