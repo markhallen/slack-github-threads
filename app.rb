@@ -251,7 +251,7 @@ post '/shortcut' do
 
     if thread_text.strip.empty?
       status 200
-      return json(response_action: 'errors', errors: { issue_block: 'No messages found in that thread.' })
+      return json(response_action: 'errors', errors: { issue_block: 'No messages found. The bot may not be added to this channel. Please add the bot to the channel and try again.' })
     end
 
     comment_url = github_comment(issue_number, org, repo, thread_text)
@@ -273,16 +273,22 @@ def get_thread_messages(channel, thread_ts)
 
   puts "DEBUG: Slack API conversations.replies response: #{res.body}"
   response = JSON.parse(res.body)
-  
+
   unless response['ok']
     puts "ERROR: Slack API failed: #{response['error']}"
-    puts "ERROR: This might be due to:"
-    puts "ERROR: 1. Missing OAuth scopes (needs channels:history, groups:history)" 
-    puts "ERROR: 2. Bot not added to the channel"
-    puts "ERROR: 3. Invalid channel or timestamp"
+    case response['error']
+    when 'not_in_channel'
+      puts "ERROR: Bot not in channel - user needs to add bot to channel"
+    when 'missing_scope'
+      puts "ERROR: Missing OAuth scopes - needs channels:history and/or groups:history"
+    when 'channel_not_found'
+      puts "ERROR: Channel not found - invalid channel ID"
+    else
+      puts "ERROR: Unknown error: #{response['error']}"
+    end
     return []
   end
-  
+
   messages = response['messages'] || []
   puts "DEBUG: Found #{messages.length} messages in thread"
 
