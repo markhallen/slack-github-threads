@@ -125,9 +125,15 @@ def github_comment(issue_number, org, repo, body)
   req.body = { body: body }.to_json
 
   res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+
   unless res.code.to_i == 201
-    error_message = "Failed to post comment to GitHub issue ##{issue_number}: #{res.code} #{res.message} - #{res.body}"
-    halt 500, error_message
+    puts "GitHub POST failed:"
+    puts "URL: #{uri}"
+    puts "Status: #{res.code} #{res.message}"
+    puts "Body: #{res.body}"
+    puts "Request: #{req.body}"
+    halt 500, "GitHub error: #{res.body}"
   end
+
   "Posted thread to GitHub issue ##{issue_number}"
 end
