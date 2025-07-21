@@ -10,6 +10,13 @@ puts "RACK_ENV: #{ENV['RACK_ENV']}"
 puts "PORT: #{ENV['PORT']}"
 puts "Environment variables loaded: #{ENV.keys.grep(/GITHUB|SLACK/).join(', ')}"
 
+helpers do
+  def json(response_hash)
+    content_type :json
+    response_hash.to_json
+  end
+end
+
 get '/up' do
   status 200
   'OK'
@@ -84,14 +91,15 @@ post '/shortcut' do
     thread_ts = metadata['thread_ts']
     issue_url = payload.dig('view', 'state', 'values', 'issue_block', 'issue_url', 'value')
 
+    unless issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
+      status 200
+      return json(response_action: 'errors', errors: { issue_block: 'Invalid GitHub issue URL.' })
+    end
+
+    org, repo, issue_number = $1, $2, $3
+
     messages = get_thread_messages(channel_id, thread_ts)
     thread_text = messages.map { |m| "*#{m['user'] || 'unknown'}*: #{m['text']}" }.join("\n\n")
-
-    if issue_url =~ %r{github\.com/([^/]+)/([^/]+)/issues/(\d+)}
-      org, repo, issue_number = $1, $2, $3
-    else
-      halt 400, "Invalid GitHub issue URL."
-    end
 
     github_comment(issue_number, org, repo, thread_text)
     status 200
@@ -117,6 +125,9 @@ def github_comment(issue_number, org, repo, body)
   req.body = { body: body }.to_json
 
   res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-  halt 500, res.body unless res.code.to_i == 201
+  unless res.code.to_i == 201
+    error_message = "Failed to post comment to GitHub issue ##{issue_number}: #{res.code} #{res.message} - #{res.body}"
+    halt 500, error_message
+  end
   "Posted thread to GitHub issue ##{issue_number}"
 end
