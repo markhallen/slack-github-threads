@@ -187,10 +187,15 @@ def get_thread_messages(channel, thread_ts)
     user_res = Net::HTTP.start(user_uri.hostname, user_uri.port, use_ssl: true) { |http| http.request(user_req) }
     user_data = JSON.parse(user_res.body)
 
+    puts "DEBUG: User API call for #{user_id}: #{user_data.inspect}"
+
     if user_data['ok'] && user_data['user']
-      user_names[user_id] = user_data['user']['real_name'] || user_data['user']['display_name'] || user_data['user']['name'] || user_id
+      real_name = user_data['user']['real_name'] || user_data['user']['display_name'] || user_data['user']['name'] || user_id
+      user_names[user_id] = real_name
+      puts "DEBUG: Mapped #{user_id} to #{real_name}"
     else
       user_names[user_id] = user_id
+      puts "DEBUG: Failed to get user info for #{user_id}, using ID as fallback"
     end
   end
 
@@ -198,6 +203,7 @@ def get_thread_messages(channel, thread_ts)
   messages.each do |message|
     if message['user'] && user_names[message['user']]
       message['user_name'] = user_names[message['user']]
+      puts "DEBUG: Message from #{message['user']} assigned name: #{message['user_name']}"
     end
   end
 
