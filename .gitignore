@@ -29,6 +29,45 @@ pids
 *.swo
 *~
 
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ruby
+*.gem
+*.rbc
+/.config
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+
+# Bundler
+/vendor/bundle
+/.bundle/
+
+# Deployment
+.kamal/secrets
+config/master.key
+
+# Documentation
+/doc/
+/.yardoc
+/_yardoc
+/rdoc/
+
+# Test artifacts
+coverage/
+.tox/
+
 # OS generated files
 .DS_Store
 .DS_Store?

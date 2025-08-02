@@ -1,14 +1,14 @@
-service: my-gh-commenter
-image: markhallen/gh-commenter
+service: slack-github-threads
+image: your-username/slack-github-threads
 servers:
   web:
-    - 23.88.45.191
+    - your-server-ip
 proxy:
   ssl: true
-  host: gh-commenter.markhallen.dev
+  host: your-domain.com
 registry:
   server: ghcr.io
-  username: markhallen
+  username: your-registry-username
   password:
     - KAMAL_REGISTRY_PASSWORD
 env:

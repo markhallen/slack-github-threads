@@ -1,5 +1,8 @@
 # slack-github-threads
 
+[![CI](https://github.com/markhallen/slack-github-threads/actions/workflows/ci.yml/badge.svg)](https://github.com/markhallen/slack-github-threads/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Slack slash command integration that posts Slack thread conversations as comments to GitHub issues.
 
 ## Overview
@@ -27,7 +30,7 @@ This Ruby Sinatra application provides a bridge between Slack and GitHub, allowi
 1. Clone the repository:
 
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/markhallen/slack-github-threads.git
    cd slack-github-threads
    ```
 
@@ -38,9 +41,16 @@ This Ruby Sinatra application provides a bridge between Slack and GitHub, allowi
    ```
 
 3. Set up environment variables:
+
    ```bash
    cp .env.example .env
    # Edit .env with your tokens
+   ```
+
+4. (Optional) Set up Kamal deployment secrets:
+   ```bash
+   cp .kamal/secrets.example .kamal/secrets
+   # Edit .kamal/secrets with your deployment credentials
    ```
 
 ## Environment Variables
@@ -190,6 +200,9 @@ docker run -p 3000:3000 --env-file .env slack-github-threads
 ### Running Tests
 
 ```bash
+# Run all CI checks (recommended for development)
+bundle exec rake ci
+
 # Run all tests
 bundle exec rake test
 

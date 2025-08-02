@@ -1,0 +1,33 @@
+#!/bin/sh
+# Pre-commit hook to prevent accidental token commits
+# To install: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+# Check for potential secrets in staged files
+if git diff --cached --name-only | xargs grep -l "xoxb-\|ghp_\|sk-\|pk_" 2>/dev/null; then
+    echo "❌ ERROR: Potential API tokens/secrets found in staged files!"
+    echo "Please remove any real tokens before committing."
+    echo "Files with potential secrets:"
+    git diff --cached --name-only | xargs grep -l "xoxb-\|ghp_\|sk-\|pk_" 2>/dev/null
+    exit 1
+fi
+
+# Check for TODO/FIXME comments in staged files
+if git diff --cached | grep -E "^\+.*\b(TODO|FIXME|XXX)\b" >/dev/null; then
+    echo "⚠️  WARNING: Found TODO/FIXME comments in staged changes"
+    echo "Consider addressing these before committing:"
+    git diff --cached | grep -E "^\+.*\b(TODO|FIXME|XXX)\b"
+    echo ""
+    echo "Continue anyway? (y/N)"
+    read -r response
+    case "$response" in
+        [yY][eE][sS]|[yY])
+            echo "Proceeding with commit..."
+            ;;
+        *)
+            echo "Commit cancelled."
+            exit 1
+            ;;
+    esac
+fi
+
+echo "✅ Pre-commit checks passed!"
