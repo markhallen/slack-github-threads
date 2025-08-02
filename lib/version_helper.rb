@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
+require 'English'
 require 'date'
 
 # Helper module for version management and release operations
 module VersionHelper
   # Version pattern for semantic versioning
-  VERSION_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*))?(?:\+([a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*))?$/
+  VERSION_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9\-]+
+                      (?:\.[a-zA-Z0-9\-]+)*))?(?:\+([a-zA-Z0-9\-]+
+                      (?:\.[a-zA-Z0-9\-]+)*))?$/x
 
   # Bump version based on release type
   def self.bump_version(current_version, release_type)
@@ -38,7 +41,7 @@ module VersionHelper
     # Get the latest tag that looks like a version
     latest_tag = `git describe --tags --abbrev=0 --match="v*" 2>/dev/null`.strip
 
-    return nil if latest_tag.empty? || $?.exitstatus != 0
+    return nil if latest_tag.empty? || $CHILD_STATUS.exitstatus != 0
 
     latest_tag
   end
@@ -46,27 +49,30 @@ module VersionHelper
   # Analyze commits since last version to determine suggested release type
   def self.analyze_commits_for_version_bump(since_ref = nil)
     since_ref ||= current_version
+    return 'minor' if since_ref.nil?
 
-    if since_ref.nil?
-      # No previous version, suggest minor for initial release
-      return 'minor'
-    end
-
-    # Get commits since the reference
-    commits = `git log #{since_ref}..HEAD --oneline --no-merges 2>/dev/null`.strip.split("\n")
-
+    commits = get_commits_since(since_ref)
     return 'patch' if commits.empty?
 
+    determine_version_bump_type(commits)
+  end
+
+  # Get commits since a reference
+  def self.get_commits_since(since_ref)
+    `git log #{since_ref}..HEAD --oneline --no-merges 2>/dev/null`.strip.split("\n")
+  end
+
+  # Determine version bump type based on commits
+  def self.determine_version_bump_type(commits)
     has_breaking = false
     has_feature = false
 
     commits.each do |commit|
       commit_msg = commit.split(' ', 2)[1] || ''
 
-      # Check for breaking changes
-      if commit_msg.include?('BREAKING CHANGE') || commit_msg.match(/^[^:]+!:/)
+      if breaking_change?(commit_msg)
         has_breaking = true
-      elsif commit_msg.start_with?('feat')
+      elsif feature_commit?(commit_msg)
         has_feature = true
       end
     end
@@ -74,80 +80,102 @@ module VersionHelper
     return 'major' if has_breaking
     return 'minor' if has_feature
 
-    'patch' # Default for fixes and other changes
+    'patch'
+  end
+
+  # Check if commit message indicates a breaking change
+  def self.breaking_change?(commit_msg)
+    commit_msg.include?('BREAKING CHANGE') || commit_msg.match(/^[^:]+!:/)
+  end
+
+  # Check if commit message indicates a feature
+  def self.feature_commit?(commit_msg)
+    commit_msg.start_with?('feat')
   end
 
   # Generate changelog entries for a version
   def self.generate_changelog_for_version(version, since_ref = nil)
     since_ref ||= current_version
 
-    commits = if since_ref.nil?
-                `git log --oneline --no-merges`.strip.split("\n")
-              else
-                `git log #{since_ref}..HEAD --oneline --no-merges`.strip.split("\n")
-              end
+    commits = get_commits_for_changelog(since_ref)
+    categorized_commits = categorize_commits(commits)
 
-    # Categorize commits
-    features = []
-    fixes = []
-    breaking_changes = []
-    other_changes = []
+    build_changelog_content(version, categorized_commits)
+  end
+
+  # Get commits for changelog generation
+  def self.get_commits_for_changelog(since_ref)
+    if since_ref.nil?
+      `git log --oneline --no-merges`.strip.split("\n")
+    else
+      `git log #{since_ref}..HEAD --oneline --no-merges`.strip.split("\n")
+    end
+  end
+
+  # Categorize commits by type
+  def self.categorize_commits(commits)
+    categories = {
+      features: [],
+      fixes: [],
+      breaking_changes: [],
+      other_changes: [],
+    }
 
     commits.reverse.each do |commit|
       _sha, message = commit.split(' ', 2)
       next unless message
 
-      case message
-      when /^feat(\(.+\))?!?:/
-        if message.include?('!') || message.include?('BREAKING CHANGE')
-          breaking_changes << "- #{message.sub(/^feat(\(.+\))?!?: /, '')}"
-        else
-          features << "- #{message.sub(/^feat(\(.+\))?: /, '')}"
-        end
-      when /^fix(\(.+\))?:/
-        fixes << "- #{message.sub(/^fix(\(.+\))?: /, '')}"
-      when /BREAKING CHANGE/
-        breaking_changes << "- #{message}"
+      categorize_single_commit(message, categories)
+    end
+
+    categories
+  end
+
+  # Categorize a single commit message
+  def self.categorize_single_commit(message, categories)
+    case message
+    when /^feat(\(.+\))?!?:/
+      if message.include?('!') || message.include?('BREAKING CHANGE')
+        categories[:breaking_changes] << format_commit_message(message, /^feat(\(.+\))?!?: /)
       else
-        # Include other conventional commit types or generic messages
-        other_changes << "- #{message}"
+        categories[:features] << format_commit_message(message, /^feat(\(.+\))?: /)
       end
+    when /^fix(\(.+\))?:/
+      categories[:fixes] << format_commit_message(message, /^fix(\(.+\))?: /)
+    when /BREAKING CHANGE/
+      categories[:breaking_changes] << "- #{message}"
+    else
+      categories[:other_changes] << "- #{message}"
     end
+  end
 
-    # Build changelog content
-    changelog_content = []
-    changelog_content << "## [#{version}] - #{Date.today.strftime('%Y-%m-%d')}"
-    changelog_content << ''
+  # Format commit message by removing prefix
+  def self.format_commit_message(message, prefix_pattern)
+    "- #{message.sub(prefix_pattern, '')}"
+  end
 
-    unless breaking_changes.empty?
-      changelog_content << '### ⚠️ BREAKING CHANGES'
-      changelog_content << ''
-      changelog_content.concat(breaking_changes)
-      changelog_content << ''
-    end
+  # Build changelog content from categorized commits
+  def self.build_changelog_content(version, categories)
+    content = []
+    content << "## [#{version}] - #{Date.today.strftime('%Y-%m-%d')}"
+    content << ''
 
-    unless features.empty?
-      changelog_content << '### ✨ Features'
-      changelog_content << ''
-      changelog_content.concat(features)
-      changelog_content << ''
-    end
+    add_changelog_section(content, '### ⚠️ BREAKING CHANGES', categories[:breaking_changes])
+    add_changelog_section(content, '### ✨ Features', categories[:features])
+    add_changelog_section(content, '### 🐛 Bug Fixes', categories[:fixes])
+    add_changelog_section(content, '### 🔧 Other Changes', categories[:other_changes])
 
-    unless fixes.empty?
-      changelog_content << '### 🐛 Bug Fixes'
-      changelog_content << ''
-      changelog_content.concat(fixes)
-      changelog_content << ''
-    end
+    content.join("\n")
+  end
 
-    unless other_changes.empty?
-      changelog_content << '### 🔧 Other Changes'
-      changelog_content << ''
-      changelog_content.concat(other_changes)
-      changelog_content << ''
-    end
+  # Add a section to changelog content if items exist
+  def self.add_changelog_section(content, header, items)
+    return if items.empty?
 
-    changelog_content.join("\n")
+    content << header
+    content << ''
+    content.concat(items)
+    content << ''
   end
 
   # Determine the next version based on commits

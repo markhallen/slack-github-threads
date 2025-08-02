@@ -10,44 +10,44 @@ rescue LoadError
   # RuboCop not available
 end
 
-# Default task
-task default: :test
+# Default task - show help
+task default: :help
 
 # Help task - show commonly used tasks
 desc 'Show commonly used rake tasks'
 task :help do
   puts "\n🚀 slack-github-threads - Available Rake Tasks\n\n"
-  
-  puts "📋 Development:"
-  puts "  rake test         # Run all tests"
-  puts "  rake ci           # Run all CI checks (syntax + rubocop + tests)"
-  puts "  rake server       # Start the development server"
-  puts "  rake install      # Install dependencies"
-  puts ""
-  
-  puts "🔧 Code Quality:"
-  puts "  rake lint         # Run linting checks (syntax + rubocop)"
-  puts "  rake syntax       # Check Ruby syntax only"
-  puts "  rake rubocop      # Run RuboCop linter only"
-  puts ""
-  
-  puts "📦 Release Management:"
-  puts "  rake release:preview  # Preview next release and changelog"
-  puts "  rake release:patch    # Create patch release (bug fixes)"
-  puts "  rake release:minor    # Create minor release (new features)"
-  puts "  rake release:major    # Create major release (breaking changes)"
-  puts ""
-  
-  puts "📚 More Information:"
-  puts "  rake -T           # Show all available tasks with descriptions"
-  puts "  rake -T release   # Show only release-related tasks"
-  puts ""
-  
-  puts "💡 Quick Start:"
+
+  puts '📋 Development:'
+  puts '  rake test         # Run all tests'
+  puts '  rake ci           # Run all CI checks (syntax + rubocop + tests)'
+  puts '  rake server       # Start the development server'
+  puts '  rake install      # Install dependencies'
+  puts ''
+
+  puts '🔧 Code Quality:'
+  puts '  rake lint         # Run linting checks (syntax + rubocop)'
+  puts '  rake syntax       # Check Ruby syntax only'
+  puts '  rake rubocop      # Run RuboCop linter only'
+  puts ''
+
+  puts '📦 Release Management:'
+  puts '  rake release:preview  # Preview next release and changelog'
+  puts '  rake release:patch    # Create patch release (bug fixes)'
+  puts '  rake release:minor    # Create minor release (new features)'
+  puts '  rake release:major    # Create major release (breaking changes)'
+  puts ''
+
+  puts '📚 More Information:'
+  puts '  rake -T           # Show all available tasks with descriptions'
+  puts '  rake -T release   # Show only release-related tasks'
+  puts ''
+
+  puts '💡 Quick Start:'
   puts "  1. Run 'rake test' to ensure everything works"
   puts "  2. Run 'rake release:preview' to see what would be released"
   puts "  3. Run 'rake release:patch' (or minor/major) to create a release"
-  puts ""
+  puts ''
 end
 
 # Test task
@@ -229,7 +229,7 @@ def determine_next_version(bump_type)
   VersionHelper.determine_next_version(bump_type)
 end
 
-def get_current_version
+def current_version
   VersionHelper.current_version
 end
 
@@ -265,7 +265,7 @@ def update_changelog_file(version, content)
     updated_content = lines.join("\n")
   else
     # No existing structure, prepend content
-    updated_content = content + "\n" + existing_content
+    updated_content = "#{content}\n#{existing_content}"
   end
 
   File.write(changelog_file, updated_content)
@@ -274,8 +274,18 @@ end
 
 def create_changelog_file(version, content)
   changelog_file = 'CHANGELOG.md'
-  header = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n## [Unreleased]\n\n"
+  header = build_changelog_header
 
   File.write(changelog_file, header + content)
   puts "✅ Created #{changelog_file} with version #{version}"
+end
+
+def build_changelog_header
+  [
+    "# Changelog\n",
+    "All notable changes to this project will be documented in this file.\n",
+    'The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),',
+    "\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).",
+    "\n\n## [Unreleased]\n\n",
+  ].join("\n")
 end
