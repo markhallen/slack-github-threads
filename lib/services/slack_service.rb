@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'net/http'
 require 'uri'
 require 'json'
@@ -48,13 +50,13 @@ class SlackService
       thread_ts: thread_ts,
       text: text,
       unfurl_links: false,
-      unfurl_media: false
+      unfurl_media: false,
     }
 
     response = api_request('chat.postMessage', message_data, method: :post)
 
     if response['ok']
-      puts "DEBUG: Successfully posted Slack reply"
+      puts 'DEBUG: Successfully posted Slack reply'
       true
     else
       puts "DEBUG: Failed to post Slack reply: #{response['error']}"
@@ -67,7 +69,7 @@ class SlackService
     {
       success: response['ok'],
       status_code: response['ok'] ? 200 : 400,
-      body: response['ok'] ? '' : response.to_json
+      body: response['ok'] ? '' : response.to_json,
     }
   end
 
@@ -108,16 +110,16 @@ class SlackService
   def handle_api_error(error, channel)
     case error
     when 'not_in_channel'
-      puts "ERROR: Bot not in channel - attempting to join channel automatically"
+      puts 'ERROR: Bot not in channel - attempting to join channel automatically'
       if join_channel(channel)
-        puts "DEBUG: Successfully joined channel, caller should retry"
+        puts 'DEBUG: Successfully joined channel, caller should retry'
       else
-        puts "ERROR: Failed to join channel automatically - user needs to add bot manually"
+        puts 'ERROR: Failed to join channel automatically - user needs to add bot manually'
       end
     when 'missing_scope'
-      puts "ERROR: Missing OAuth scopes - needs channels:history and/or groups:history"
+      puts 'ERROR: Missing OAuth scopes - needs channels:history and/or groups:history'
     when 'channel_not_found'
-      puts "ERROR: Channel not found - invalid channel ID"
+      puts 'ERROR: Channel not found - invalid channel ID'
     else
       puts "ERROR: Unknown error: #{error}"
     end

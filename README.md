@@ -203,15 +203,14 @@ docker run -p 3000:3000 --env-file .env slack-github-threads
 # Run all CI checks (recommended for development)
 bundle exec rake ci
 
-# Run all tests
-bundle exec rake test
+# Individual commands
+bundle exec rake rubocop     # Run RuboCop linter
+bundle exec rake test        # Run all tests
+bundle exec rake syntax      # Check syntax only
 
 # Run specific test groups
 bundle exec rake test_services
 bundle exec rake test_app
-
-# Check syntax of all files
-bundle exec rake syntax
 ```
 
 ### Code Organization

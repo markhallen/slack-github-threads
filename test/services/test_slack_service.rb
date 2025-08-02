@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../test_helper'
 require_relative '../../lib/services/slack_service'
 
@@ -11,7 +13,7 @@ class SlackServiceTest < Minitest::Test
     messages = [slack_message('U123', 'Hello world', 'John Doe')]
 
     # Stub conversations.replies
-    stub_request(:get, "https://slack.com/api/conversations.replies")
+    stub_request(:get, 'https://slack.com/api/conversations.replies')
       .with(query: { channel: 'C123', ts: '1234567890.123456' })
       .to_return(
         status: 200,
@@ -32,7 +34,7 @@ class SlackServiceTest < Minitest::Test
   def test_get_thread_messages_with_mentions
     messages = [slack_message('U123', 'Hello <@U456>', 'John Doe')]
 
-    stub_request(:get, "https://slack.com/api/conversations.replies")
+    stub_request(:get, 'https://slack.com/api/conversations.replies')
       .with(query: { channel: 'C123', ts: '1234567890.123456' })
       .to_return(
         status: 200,
@@ -53,7 +55,7 @@ class SlackServiceTest < Minitest::Test
 
   def test_get_thread_messages_not_in_channel
     # First request fails
-    stub_request(:get, "https://slack.com/api/conversations.replies")
+    stub_request(:get, 'https://slack.com/api/conversations.replies')
       .with(query: hash_including(channel: 'C123'))
       .to_return(
         status: 200,
@@ -62,7 +64,7 @@ class SlackServiceTest < Minitest::Test
       )
 
     # Stub successful join
-    stub_request(:post, "https://slack.com/api/conversations.join")
+    stub_request(:post, 'https://slack.com/api/conversations.join')
       .to_return(
         status: 200,
         body: { 'ok' => true }.to_json,
@@ -75,7 +77,7 @@ class SlackServiceTest < Minitest::Test
   end
 
   def test_join_channel_success
-    stub_request(:post, "https://slack.com/api/conversations.join")
+    stub_request(:post, 'https://slack.com/api/conversations.join')
       .with(body: { channel: 'C123' }.to_json)
       .to_return(
         status: 200,
@@ -84,11 +86,12 @@ class SlackServiceTest < Minitest::Test
       )
 
     result = @service.join_channel('C123')
+
     assert result
   end
 
   def test_join_channel_failure
-    stub_request(:post, "https://slack.com/api/conversations.join")
+    stub_request(:post, 'https://slack.com/api/conversations.join')
       .to_return(
         status: 200,
         body: { 'ok' => false, 'error' => 'already_in_channel' }.to_json,
@@ -96,17 +99,18 @@ class SlackServiceTest < Minitest::Test
       )
 
     result = @service.join_channel('C123')
+
     refute result
   end
 
   def test_post_message_success
-    stub_request(:post, "https://slack.com/api/chat.postMessage")
+    stub_request(:post, 'https://slack.com/api/chat.postMessage')
       .with(body: {
         channel: 'C123',
         thread_ts: '1234567890.123456',
         text: 'Test message',
         unfurl_links: false,
-        unfurl_media: false
+        unfurl_media: false,
       }.to_json)
       .to_return(
         status: 200,
@@ -115,6 +119,7 @@ class SlackServiceTest < Minitest::Test
       )
 
     result = @service.post_message('C123', '1234567890.123456', 'Test message')
+
     assert result
   end
 
@@ -122,11 +127,12 @@ class SlackServiceTest < Minitest::Test
     stub_slack_users_info('U123', 'John Doe')
 
     result = @service.get_user_info('U123')
+
     assert_equal 'John Doe', result
   end
 
   def test_get_user_info_fallback
-    stub_request(:get, "https://slack.com/api/users.info")
+    stub_request(:get, 'https://slack.com/api/users.info')
       .with(query: { user: 'U123' })
       .to_return(
         status: 200,
@@ -135,6 +141,7 @@ class SlackServiceTest < Minitest::Test
       )
 
     result = @service.get_user_info('U123')
+
     assert_equal 'U123', result
   end
 end

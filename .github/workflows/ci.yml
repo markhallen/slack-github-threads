@@ -25,6 +25,9 @@ jobs:
 
     - name: Run syntax check
       run: bundle exec rake syntax
+    
+    - name: Run RuboCop
+      run: bundle exec rake rubocop
 
     - name: Run tests
       run: bundle exec rake test

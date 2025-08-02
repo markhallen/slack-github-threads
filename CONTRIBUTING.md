@@ -43,15 +43,14 @@ Thank you for your interest in contributing to Slack GitHub Threads! This docume
 # Run all CI checks locally (recommended before submitting PR)
 bundle exec rake ci
 
-# Run all tests
-bundle exec rake test
+# Individual commands
+bundle exec rake rubocop     # Run RuboCop linter
+bundle exec rake test        # Run all tests
+bundle exec rake syntax      # Check syntax only
 
 # Run specific test groups
 bundle exec rake test_services
 bundle exec rake test_app
-
-# Check syntax of all files
-bundle exec rake syntax
 ```
 
 **💡 Pro tip**: Always run `bundle exec rake ci` before submitting a PR to ensure your changes pass the same checks as our CI system!

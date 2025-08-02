@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'slack_service'
 require_relative 'github_service'
 require_relative 'text_processor'
@@ -12,7 +14,7 @@ class CommentService
   def post_thread_to_github(channel_id, thread_ts, issue_url)
     # Parse GitHub issue URL
     github_info = GitHubService.parse_issue_url(issue_url)
-    raise "Invalid GitHub issue URL" unless github_info
+    raise 'Invalid GitHub issue URL' unless github_info
 
     # Get messages from Slack thread
     messages = @slack.get_thread_messages(channel_id, thread_ts)
@@ -24,7 +26,7 @@ class CommentService
       messages = @slack.get_thread_messages(channel_id, thread_ts)
     end
 
-    raise "No messages found in thread" if messages.empty?
+    raise 'No messages found in thread' if messages.empty?
 
     # Process messages into formatted text
     thread_text = TextProcessor.process_messages(messages)

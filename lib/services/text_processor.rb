@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 class TextProcessor
   HTML_ENTITIES = {
     '&gt;' => '>',
     '&lt;' => '<',
     '&amp;' => '&',
     '&quot;' => '"',
-    '&#39;' => "'"
+    '&#39;' => "'",
   }.freeze
 
   def self.process_messages(messages)
@@ -44,9 +46,7 @@ class TextProcessor
       end
     end
 
-    if original_text != text
-      puts "DEBUG: Text changed from '#{original_text}' to '#{text}'"
-    end
+    puts "DEBUG: Text changed from '#{original_text}' to '#{text}'" if original_text != text
 
     text
   end
@@ -59,8 +59,8 @@ class TextProcessor
 
     {
       channel_id: match[1],
-      message_ts: "#{match[2][0..-7]}.#{match[2][-6..-1]}",
-      thread_ts: match[3] || "#{match[2][0..-7]}.#{match[2][-6..-1]}"
+      message_ts: "#{match[2][0..-7]}.#{match[2][-6..]}",
+      thread_ts: match[3] || "#{match[2][0..-7]}.#{match[2][-6..]}",
     }
   end
 end

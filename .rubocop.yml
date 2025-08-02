@@ -1,0 +1,72 @@
+inherit_from: .rubocop_todo.yml
+
+# RuboCop configuration for slack-github-threads
+# See https://docs.rubocop.org/rubocop/configuration
+
+plugins:
+  - rubocop-minitest
+  - rubocop-rake
+
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - '.git/**/*'
+    - 'Gemfile.lock'
+
+# Layout and formatting
+Layout/LineLength:
+  Max: 120
+  AllowedPatterns: ['^\s*#'] # Allow long comments
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+# Style preferences
+Style/Documentation:
+  Enabled: false # Don't require class/module documentation for now
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+# Method preferences
+Metrics/MethodLength:
+  Max: 20
+  CountAsOne: ['array', 'hash', 'heredoc']
+
+Metrics/ClassLength:
+  Max: 150
+
+Metrics/ModuleLength:
+  Max: 150
+
+# Block preferences
+Metrics/BlockLength:
+  Exclude:
+    - 'test/**/*' # Allow longer blocks in tests
+    - 'Rakefile'   # Allow longer blocks in Rake tasks
+
+# Naming
+Naming/PredicatePrefix:
+  ForbiddenPrefixes: ['is_', 'has_', 'have_']
+  AllowedMethods: ['is_a?']
+
+# Security
+Security/Open:
+  Enabled: true
+
+# Minitest specific (from rubocop-minitest)
+Minitest/MultipleAssertions:
+  Max: 10 # Allow multiple assertions in tests
+
+# Rake specific (from rubocop-rake)
+Rake/Desc:
+  Enabled: true

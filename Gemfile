@@ -1,12 +1,17 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
+gem 'dotenv'
+gem 'puma'
 gem 'sinatra'
 gem 'thin'
-gem 'puma'
-gem 'dotenv'
 
 group :development do
   gem 'rake'
+  gem 'rubocop', require: false
+  gem 'rubocop-minitest', require: false
+  gem 'rubocop-rake', require: false
 end
 
 group :test do

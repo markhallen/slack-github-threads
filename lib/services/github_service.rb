@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'net/http'
 require 'uri'
 require 'json'
@@ -19,7 +21,7 @@ class GitHubService
     res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
 
     unless res.code.to_i == 201
-      puts "GitHub POST failed:"
+      puts 'GitHub POST failed:'
       puts "URL: #{uri}"
       puts "Status: #{res.code} #{res.message}"
       puts "Body: #{res.body}"
@@ -44,7 +46,7 @@ class GitHubService
     {
       org: match[1],
       repo: match[2],
-      issue_number: match[3]
+      issue_number: match[3],
     }
   end
 end

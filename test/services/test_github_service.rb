@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../test_helper'
 require_relative '../../lib/services/github_service'
 
@@ -16,7 +18,7 @@ class GitHubServiceTest < Minitest::Test
   end
 
   def test_create_comment_failure
-    stub_request(:post, "https://api.github.com/repos/owner/repo/issues/1/comments")
+    stub_request(:post, 'https://api.github.com/repos/owner/repo/issues/1/comments')
       .to_return(
         status: 404,
         body: { message: 'Not Found' }.to_json,
@@ -48,17 +50,20 @@ class GitHubServiceTest < Minitest::Test
 
   def test_parse_issue_url_invalid
     result = GitHubService.parse_issue_url('not-a-github-url')
+
     assert_nil result
   end
 
   def test_parse_issue_url_nil
     result = GitHubService.parse_issue_url(nil)
+
     assert_nil result
   end
 
   def test_parse_issue_url_pull_request
     url = 'https://github.com/owner/repo/pull/123'
     result = GitHubService.parse_issue_url(url)
+
     assert_nil result
   end
 end

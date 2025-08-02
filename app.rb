@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'sinatra'
 require 'json'
 require 'dotenv/load'
@@ -13,9 +15,9 @@ configure do
   set :port, ENV.fetch('PORT', 3000)
 
   # Add startup logging
-  puts "Starting gh-commenter app..."
-  puts "RACK_ENV: #{ENV['RACK_ENV']}"
-  puts "PORT: #{ENV['PORT']}"
+  puts 'Starting gh-commenter app...'
+  puts "RACK_ENV: #{ENV.fetch('RACK_ENV', nil)}"
+  puts "PORT: #{ENV.fetch('PORT', nil)}"
   puts "Environment variables loaded: #{ENV.keys.grep(/GITHUB|SLACK/).join(', ')}"
 end
 
@@ -28,8 +30,8 @@ helpers do
 
   def comment_service
     @comment_service ||= CommentService.new(
-      ENV['SLACK_BOT_TOKEN'],
-      ENV['GITHUB_TOKEN']
+      ENV.fetch('SLACK_BOT_TOKEN', nil),
+      ENV.fetch('GITHUB_TOKEN', nil)
     )
   end
 
@@ -38,9 +40,9 @@ helpers do
     missing << 'SLACK_BOT_TOKEN' unless ENV['SLACK_BOT_TOKEN']
     missing << 'GITHUB_TOKEN' unless ENV['GITHUB_TOKEN']
 
-    unless missing.empty?
-      halt 500, "Missing environment variables: #{missing.join(', ')}"
-    end
+    return if missing.empty?
+
+    halt 500, "Missing environment variables: #{missing.join(', ')}"
   end
 end
 
@@ -58,14 +60,14 @@ post '/ghcomment' do
   channel_id = params['channel_id']
   thread_ts = params['thread_ts'] || params['message_ts']
 
-  halt 400, "Missing thread." unless thread_ts
-  halt 400, "Missing issue URL." unless issue_url && !issue_url.empty?
+  halt 400, 'Missing thread.' unless thread_ts
+  halt 400, 'Missing issue URL.' unless issue_url && !issue_url.empty?
 
   begin
     comment_url = comment_service.post_thread_to_github(channel_id, thread_ts, issue_url)
     status 200
     "✅ Posted to GitHub: #{comment_url}"
-  rescue => e
+  rescue StandardError => e
     puts "ERROR in /ghcomment: #{e.message}"
     puts e.backtrace
     halt 500, "Failed to post comment: #{e.message}"
@@ -93,11 +95,9 @@ post '/shortcut' do
   end
 end
 
-private
-
 def handle_global_shortcut(payload)
   trigger_id = payload['trigger_id']
-  puts "DEBUG: Global shortcut triggered"
+  puts 'DEBUG: Global shortcut triggered'
 
   result = comment_service.open_global_shortcut_modal(trigger_id)
 
@@ -149,8 +149,8 @@ def handle_global_modal_submission(payload)
   unless thread_info
     status 200
     return json(response_action: 'errors', errors: {
-      thread_block: 'Invalid Slack URL format. Please copy the link from a message in the thread.'
-    })
+                  thread_block: 'Invalid Slack URL format. Please copy the link from a message in the thread.',
+                })
   end
 
   process_modal_submission(thread_info[:channel_id], thread_info[:thread_ts], issue_url)
@@ -172,19 +172,19 @@ def process_modal_submission(channel_id, thread_ts, issue_url)
   unless GitHubService.parse_issue_url(issue_url)
     status 200
     return json(response_action: 'errors', errors: {
-      issue_block: 'Invalid GitHub issue URL.'
-    })
+                  issue_block: 'Invalid GitHub issue URL.',
+                })
   end
 
   begin
     comment_service.post_thread_to_github(channel_id, thread_ts, issue_url)
     status 200
     body '' # Required response for modals
-  rescue => e
+  rescue StandardError => e
     puts "ERROR in modal submission: #{e.message}"
     status 200
     json(response_action: 'errors', errors: {
-      issue_block: "Failed to post comment: #{e.message}"
-    })
+           issue_block: "Failed to post comment: #{e.message}",
+         })
   end
 end
