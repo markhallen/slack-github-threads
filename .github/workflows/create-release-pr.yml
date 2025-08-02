@@ -1,0 +1,236 @@
+name: Create Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Type of release'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+          - patch
+      dry_run:
+        description: 'Dry run (preview only)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Determine release type
+      id: release_type
+      run: |
+        if [ "${{ github.event.inputs.release_type }}" = "auto" ]; then
+          # Run preview to get suggested release type
+          PREVIEW_OUTPUT=$(bundle exec rake release:preview)
+          echo "$PREVIEW_OUTPUT"
+
+          # Extract suggested release type from output
+          SUGGESTED_TYPE=$(echo "$PREVIEW_OUTPUT" | grep "Suggested release type:" | awk '{print $NF}')
+
+          if [ -z "$SUGGESTED_TYPE" ]; then
+            echo "Could not determine release type automatically, defaulting to patch"
+            RELEASE_TYPE="patch"
+          else
+            RELEASE_TYPE="$SUGGESTED_TYPE"
+          fi
+        else
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+        fi
+
+        echo "RELEASE_TYPE=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+        echo "Selected release type: $RELEASE_TYPE"
+
+    - name: Get current version
+      id: current_version
+      run: |
+        CURRENT=$(ruby scripts/version.rb current)
+        echo "CURRENT_VERSION=$CURRENT" >> $GITHUB_OUTPUT
+
+    - name: Calculate next version
+      id: next_version
+      run: |
+        RELEASE_TYPE=${{ steps.release_type.outputs.RELEASE_TYPE }}
+        NEXT_VERSION=$(ruby scripts/version.rb next "$RELEASE_TYPE")
+        echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_OUTPUT
+        echo "Next version will be: $NEXT_VERSION"
+
+    - name: Preview release (dry run)
+      if: ${{ github.event.inputs.dry_run == 'true' }}
+      run: |
+        echo "=== DRY RUN MODE ==="
+        echo "Current version: ${{ steps.current_version.outputs.CURRENT_VERSION }}"
+        echo "Release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
+        echo "Next version: ${{ steps.next_version.outputs.NEXT_VERSION }}"
+        echo
+        echo "=== COMMIT PREVIEW ==="
+        bundle exec rake release:preview
+        echo
+        echo "=== CHANGELOG PREVIEW ==="
+        bundle exec rake release:changelog[${{ steps.next_version.outputs.NEXT_VERSION }}] || true
+
+    - name: Create release branch
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      run: |
+        BRANCH_NAME="release/v${{ steps.next_version.outputs.NEXT_VERSION }}"
+        git checkout -b "$BRANCH_NAME"
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+    - name: Run tests before release
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      run: bundle exec rake ci
+
+    - name: Create release
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      run: |
+        bundle exec rake release:create[${{ steps.release_type.outputs.RELEASE_TYPE }}]
+
+    - name: Push release branch
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      run: |
+        git push origin "$BRANCH_NAME"
+
+    - name: Create Pull Request
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      id: create_pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: pr } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Release v${{ steps.next_version.outputs.NEXT_VERSION }}`,
+            head: process.env.BRANCH_NAME,
+            base: 'main',
+            body: `## Release v${{ steps.next_version.outputs.NEXT_VERSION }}
+
+            This is an automated release PR created by GitHub Actions.
+
+            ### Release Type: ${{ steps.release_type.outputs.RELEASE_TYPE }}
+
+            ### Changes
+
+            This PR includes:
+            - 📝 Updated CHANGELOG.md with new version
+            - 🏷️ Version tag v${{ steps.next_version.outputs.NEXT_VERSION }}
+            - ✅ All tests passing
+
+            ### What happens when merged?
+
+            When this PR is merged to main:
+            1. 🚀 GitHub Actions will automatically create a GitHub release
+            2. 📦 Release artifacts will be built and attached
+            3. 🌐 Release will be published
+
+            ### Review Checklist
+
+            - [ ] Review the changelog entries
+            - [ ] Verify the version bump is appropriate
+            - [ ] Confirm all tests are passing
+            - [ ] Check that no sensitive information is included
+
+            ---
+
+            *This PR was created automatically by the [Create Release PR workflow](.github/workflows/create-release-pr.yml)*`,
+            draft: false
+          });
+
+          // Add labels
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: pr.number,
+            labels: ['release', '${{ steps.release_type.outputs.RELEASE_TYPE }}']
+          });
+
+          console.log(`Created PR #${pr.number}: ${pr.html_url}`);
+
+          // Set outputs
+          core.setOutput('pr_number', pr.number);
+          core.setOutput('pr_url', pr.html_url);
+
+          return {
+            pr_number: pr.number,
+            pr_url: pr.html_url
+          };
+
+    - name: Comment on PR with details
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = ${{ steps.create_pr.outputs.pr_number }};
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body: `### 🚀 Release Summary
+
+            | Item | Value |
+            |------|-------|
+            | **Current Version** | ${{ steps.current_version.outputs.CURRENT_VERSION }} |
+            | **New Version** | ${{ steps.next_version.outputs.NEXT_VERSION }} |
+            | **Release Type** | ${{ steps.release_type.outputs.RELEASE_TYPE }} |
+            | **Branch** | \`${process.env.BRANCH_NAME}\` |
+
+            ### 📋 Next Steps
+
+            1. **Review** the changes in this PR
+            2. **Merge** this PR to trigger the release
+            3. **Monitor** the release workflow in the Actions tab
+
+            The release will be automatically created when this PR is merged! 🎉`
+          });
+
+    - name: Output summary
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      run: |
+        echo "## Release PR Created! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: ${{ steps.next_version.outputs.NEXT_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Type**: ${{ steps.release_type.outputs.RELEASE_TYPE }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: $BRANCH_NAME" >> $GITHUB_STEP_SUMMARY
+        echo "- **PR**: ${{ steps.create_pr.outputs.pr_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### What's Next?" >> $GITHUB_STEP_SUMMARY
+        echo "1. Review and merge the PR" >> $GITHUB_STEP_SUMMARY
+        echo "2. The release will be automatically created" >> $GITHUB_STEP_SUMMARY
+
+    - name: Output dry run summary
+      if: ${{ github.event.inputs.dry_run == 'true' }}
+      run: |
+        echo "## Dry Run Complete! 👀" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Would create version**: ${{ steps.next_version.outputs.NEXT_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Release type**: ${{ steps.release_type.outputs.RELEASE_TYPE }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "To create the actual release, run this workflow again without dry run mode." >> $GITHUB_STEP_SUMMARY

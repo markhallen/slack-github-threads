@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+env:
+  VERSION_REGEX: 'v[0-9]+\.[0-9]+\.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Only run if it's a merged PR with release label, or a version tag push
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.merged == true &&
+       contains(github.event.pull_request.labels.*.name, 'release'))
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+
+    - name: Run tests
+      run: |
+        bundle exec rake syntax
+        bundle exec rake rubocop
+        bundle exec rake test
+
+    - name: Extract version from tag or PR
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "push" ]; then
+          # Extract from tag
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          # Extract from PR title (should be "Release vX.Y.Z")
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -oE "$VERSION_REGEX" | sed 's/^v//')
+          if [ -z "$VERSION" ]; then
+            echo "Could not extract version from PR title: ${{ github.event.pull_request.title }}"
+            exit 1
+          fi
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
+
+    - name: Create tag if from PR
+      if: github.event_name == 'pull_request'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v${{ steps.version.outputs.VERSION }}" -m "Release version ${{ steps.version.outputs.VERSION }}"
+        git push origin "v${{ steps.version.outputs.VERSION }}"
+
+    - name: Extract changelog for version
+      id: changelog
+      run: |
+        # Extract changelog section for this version
+        VERSION="${{ steps.version.outputs.VERSION }}"
+        CHANGELOG_SECTION=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+
+        # If no specific version section found, use unreleased section
+        if [ -z "$CHANGELOG_SECTION" ]; then
+          CHANGELOG_SECTION=$(awk "/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+        fi
+
+        # Save to file to preserve multiline content
+        echo "$CHANGELOG_SECTION" > changelog_body.txt
+
+        # Also set as output for use in release
+        {
+          echo 'BODY<<EOF'
+          echo "$CHANGELOG_SECTION"
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+
+    - name: Build and package application
+      run: |
+        # Create a simple archive of the application
+        tar -czf slack-github-threads-v${{ steps.version.outputs.VERSION }}.tar.gz \
+          --exclude='.git*' \
+          --exclude='test/' \
+          --exclude='log/*.log' \
+          --exclude='.env*' \
+          --exclude='tmp/' \
+          .
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release v${{ steps.version.outputs.VERSION }}
+        body: ${{ steps.changelog.outputs.BODY }}
+        files: slack-github-threads-v${{ steps.version.outputs.VERSION }}.tar.gz
+        draft: false
+        prerelease: false
