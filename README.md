@@ -283,6 +283,67 @@ The application follows Sinatra best practices with clear separation of concerns
 4. Test your changes
 5. Submit a pull request
 
+## Releases
+
+This project supports multiple release workflows: automated GitHub Actions, smart Rake tasks, and interactive scripts.
+
+### 🚀 GitHub Actions Release (Recommended)
+
+Create releases directly from GitHub's web interface:
+
+1. **Go to Actions tab** → **"Create Release PR"** workflow
+2. **Click "Run workflow"** and choose:
+   - `auto` - Let the system analyze commits and suggest release type
+   - `major/minor/patch` - Specify release type manually
+   - `dry_run` - Preview what would be released
+3. **Review and merge** the created PR
+4. **Release is automatically published** when PR merges
+
+### 🧠 Smart Local Release Process
+
+```bash
+# Preview changes and get version suggestion
+rake release:preview
+
+# Create releases by type (automatic version bumping)
+rake release:major    # Breaking changes (1.0.0 → 2.0.0)
+rake release:minor    # New features (1.0.0 → 1.1.0)
+rake release:patch    # Bug fixes (1.0.0 → 1.0.1)
+
+# Push to trigger automated GitHub release
+git push origin main && git push origin v<version>
+```
+
+### 🎯 Interactive Release Script
+
+```bash
+# Interactive script with smart suggestions
+./scripts/release.sh
+
+# Or specify release type directly
+./scripts/release.sh minor
+```
+
+### Key Features
+
+- **🤖 Fully Automated**: GitHub Actions handles everything including PR creation
+- **🧠 Smart Version Detection**: Analyzes commits to suggest appropriate version bump
+- **📝 Automatic Changelog**: Generates changelog from conventional commit messages
+- **🚀 One-Click Releases**: Complete release process with testing and validation
+- **📋 Preview Mode**: See what will be released before committing
+- **👥 Team Friendly**: PR-based workflow for team review
+
+### Commit Message Conventions
+
+For optimal automatic changelog generation:
+
+- `feat: add new feature` → **Added** section → **minor** version bump
+- `fix: resolve bug` → **Fixed** section → **patch** version bump
+- `feat!: breaking change` → **Added** section → **major** version bump
+- `chore: update dependencies` → **Changed** section → **patch** version bump
+
+See [docs/CONVENTIONAL_COMMITS.md](docs/CONVENTIONAL_COMMITS.md) for detailed commit message guidelines.
+
 ## Security
 
 - Never commit tokens or secrets to the repository

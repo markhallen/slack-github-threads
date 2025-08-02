@@ -34,7 +34,7 @@ configure do
 
   # Add startup logging (only in debug mode)
   if settings.debug_mode
-    puts 'Starting gh-commenter app...'
+    puts 'Starting slack-github-threads app...'
     puts "RACK_ENV: #{ENV.fetch('RACK_ENV', nil)}"
     puts "PORT: #{ENV.fetch('PORT', nil)}"
     puts "Environment variables loaded: #{ENV.keys.grep(/GITHUB|SLACK/).join(', ')}"
@@ -42,7 +42,7 @@ configure do
   end
 
   # Log startup
-  settings.logger.info "Starting gh-commenter app (#{settings.environment})"
+  settings.logger.info "Starting slack-github-threads app (#{settings.environment})"
 end
 
 # Helpers

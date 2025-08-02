@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rake/testtask'
+require_relative 'lib/version_helper'
 
 begin
   require 'rubocop/rake_task'
@@ -72,4 +73,161 @@ task :ci do
   Rake::Task[:test].invoke
 
   puts "\n✅ All CI checks passed!"
+end
+
+# Release management tasks
+namespace :release do
+  desc 'Generate changelog from git commits since last tag'
+  task :changelog, [:version] do |_t, args|
+    version = args[:version] || ENV.fetch('VERSION', nil)
+
+    if version.nil?
+      puts '❌ Version required. Usage: rake release:changelog[1.1.0] or VERSION=1.1.0 rake release:changelog'
+      exit(1)
+    end
+
+    puts "📝 Generating changelog for version #{version}..."
+    generate_changelog_for_version(version)
+  end
+
+  desc 'Create a new release with automatic version bumping'
+  task :create, [:bump_type] do |_t, args|
+    bump_type = args[:bump_type] || ENV['BUMP_TYPE'] || 'patch'
+
+    unless %w[major minor patch].include?(bump_type)
+      puts '❌ Invalid bump type. Use: major, minor, or patch'
+      exit(1)
+    end
+
+    puts "🚀 Creating #{bump_type} release..."
+
+    # Check if working directory is clean
+    unless `git status --porcelain`.strip.empty?
+      puts '❌ Working directory is not clean. Please commit or stash your changes.'
+      system('git status --short')
+      exit(1)
+    end
+
+    # Determine next version based on bump type and commit analysis
+    version = determine_next_version(bump_type)
+    puts "📊 Next version will be: #{version}"
+
+    # Run CI checks
+    puts "\n🔍 Running CI checks..."
+    Rake::Task[:ci].invoke
+
+    # Generate changelog
+    puts "\n📝 Generating changelog..."
+    generate_changelog_for_version(version)
+
+    # Create tag
+    tag = "v#{version}"
+    puts "\n🏷️  Creating tag #{tag}..."
+    system('git add CHANGELOG.md') if File.exist?('CHANGELOG.md')
+    system("git commit -m 'Update changelog for #{version}'") unless `git status --porcelain CHANGELOG.md`.strip.empty?
+    system("git tag -a #{tag} -m 'Release version #{version}'")
+
+    puts "\n✅ Release #{version} created locally!"
+    puts "📤 Push with: git push origin main && git push origin #{tag}"
+    puts '🌐 Monitor at: https://github.com/markhallen/slack-github-threads/actions'
+  end
+
+  desc 'Create a major release (breaking changes)'
+  task :major do
+    Rake::Task['release:create'].invoke('major')
+  end
+
+  desc 'Create a minor release (new features)'
+  task :minor do
+    Rake::Task['release:create'].invoke('minor')
+  end
+
+  desc 'Create a patch release (bug fixes)'
+  task :patch do
+    Rake::Task['release:create'].invoke('patch')
+  end
+
+  desc 'Preview changelog for current unreleased commits'
+  task :preview do
+    puts '📋 Previewing changelog for unreleased commits...'
+
+    # Get version information using VersionHelper
+    info = VersionHelper.version_info
+    current_version = info[:current]
+    suggested_type = info[:suggested_type]
+
+    puts "\n💡 Suggested release type: #{suggested_type}"
+    puts "📊 Current version: #{current_version}"
+    puts "🎯 Next patch version would be: #{info[:next_patch]}"
+    puts "🎯 Next minor version would be: #{info[:next_minor]}"
+    puts "🎯 Next major version would be: #{info[:next_major]}"
+
+    # Show preview of what the changelog would look like
+    puts "\n📝 Changelog preview for #{suggested_type} release:"
+    puts VersionHelper.generate_changelog_for_version(
+      VersionHelper.determine_next_version(suggested_type)
+    )
+  end
+
+  desc 'Show current version'
+  task :version do
+    version = VersionHelper.current_version
+    puts version ? "Current version: #{version}" : 'No version tags found'
+  end
+end
+
+# Helper methods for release management (delegating to VersionHelper)
+def determine_next_version(bump_type)
+  VersionHelper.determine_next_version(bump_type)
+end
+
+def get_current_version
+  VersionHelper.current_version
+end
+
+def bump_version(version, bump_type)
+  VersionHelper.bump_version(version, bump_type)
+end
+
+def generate_changelog_for_version(version)
+  content = VersionHelper.generate_changelog_for_version(version)
+  puts content
+  
+  # Update CHANGELOG.md if it exists
+  if File.exist?('CHANGELOG.md')
+    update_changelog_file(version, content)
+  else
+    create_changelog_file(version, content)
+  end
+end
+
+def update_changelog_file(version, content)
+  changelog_file = 'CHANGELOG.md'
+  existing_content = File.read(changelog_file)
+
+  # Insert new section after "## [Unreleased]" or at the beginning
+  if existing_content.include?('## [Unreleased]')
+    # Find the end of the Unreleased section
+    lines = existing_content.split("\n")
+    unreleased_end = lines.find_index { |line| line.match?(/^## \[.*\]/) && !line.include?('Unreleased') }
+    unreleased_end ||= lines.length
+
+    # Insert new section
+    lines.insert(unreleased_end, content.split("\n"))
+    updated_content = lines.flatten.join("\n")
+  else
+    # No existing structure, prepend content
+    updated_content = content + "\n" + existing_content
+  end
+
+  File.write(changelog_file, updated_content)
+  puts "✅ Updated #{changelog_file} with version #{version}"
+end
+
+def create_changelog_file(version, content)
+  changelog_file = 'CHANGELOG.md'
+  header = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n## [Unreleased]\n\n"
+  
+  File.write(changelog_file, header + content)
+  puts "✅ Created #{changelog_file} with version #{version}"
 end
