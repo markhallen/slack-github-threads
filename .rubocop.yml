@@ -11,10 +11,10 @@ AllCops:
   TargetRubyVersion: 3.1
   NewCops: enable
   Exclude:
-    - 'vendor/**/*'
-    - 'tmp/**/*'
-    - '.git/**/*'
-    - 'Gemfile.lock'
+    - "vendor/**/*"
+    - "tmp/**/*"
+    - ".git/**/*"
+    - "Gemfile.lock"
 
 # Layout and formatting
 Layout/LineLength:
@@ -40,7 +40,7 @@ Style/TrailingCommaInHashLiteral:
 # Method preferences
 Metrics/MethodLength:
   Max: 20
-  CountAsOne: ['array', 'hash', 'heredoc']
+  CountAsOne: ["array", "hash", "heredoc"]
 
 Metrics/ClassLength:
   Max: 150
@@ -51,13 +51,14 @@ Metrics/ModuleLength:
 # Block preferences
 Metrics/BlockLength:
   Exclude:
-    - 'test/**/*' # Allow longer blocks in tests
-    - 'Rakefile'   # Allow longer blocks in Rake tasks
+    - "test/**/*" # Allow longer blocks in tests
+    - "Rakefile" # Allow longer blocks in Rake tasks
+    - "app.rb" # Allow longer helpers block in Sinatra app
 
 # Naming
 Naming/PredicatePrefix:
-  ForbiddenPrefixes: ['is_', 'has_', 'have_']
-  AllowedMethods: ['is_a?']
+  ForbiddenPrefixes: ["is_", "has_", "have_"]
+  AllowedMethods: ["is_a?"]
 
 # Security
 Security/Open:

@@ -6,9 +6,16 @@ require_relative 'text_processor'
 require_relative '../helpers/modal_builder'
 
 class CommentService
-  def initialize(slack_token, github_token)
-    @slack = SlackService.new(slack_token)
-    @github = GitHubService.new(github_token)
+  def initialize(slack_token, github_token, debug: false, logger: nil)
+    @slack = SlackService.new(slack_token, debug: debug, logger: logger)
+    @github = GitHubService.new(github_token, debug: debug, logger: logger)
+    @debug = debug
+    @logger = logger
+  end
+
+  def debug_log(message)
+    puts message if @debug
+    @logger&.debug(message)
   end
 
   def post_thread_to_github(channel_id, thread_ts, issue_url)
@@ -31,7 +38,7 @@ class CommentService
     # Process messages into formatted text
     thread_text = TextProcessor.process_messages(messages)
 
-    puts "DEBUG: Messages: #{messages.length}, Text preview: '#{thread_text[0..100]}'"
+    debug_log "DEBUG: Messages: #{messages.length}, Text preview: '#{thread_text[0..100]}'"
 
     # Post to GitHub
     comment_url = @github.create_comment(

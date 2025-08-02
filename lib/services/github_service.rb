@@ -7,8 +7,15 @@ require 'json'
 class GitHubService
   API_BASE = 'https://api.github.com'
 
-  def initialize(token)
+  def initialize(token, debug: false, logger: nil)
     @token = token
+    @debug = debug
+    @logger = logger
+  end
+
+  def debug_log(message)
+    puts message if @debug
+    @logger&.debug(message)
   end
 
   def create_comment(org, repo, issue_number, body)
@@ -33,7 +40,7 @@ class GitHubService
     comment_data = JSON.parse(res.body)
     comment_url = comment_data['html_url']
 
-    puts "DEBUG: Successfully posted to GitHub issue ##{issue_number}, comment URL: #{comment_url}"
+    debug_log "DEBUG: Successfully posted to GitHub issue ##{issue_number}, comment URL: #{comment_url}"
     comment_url
   end
 

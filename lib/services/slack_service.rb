@@ -7,12 +7,19 @@ require 'json'
 class SlackService
   API_BASE = 'https://slack.com/api'
 
-  def initialize(token)
+  def initialize(token, debug: false, logger: nil)
     @token = token
+    @debug = debug
+    @logger = logger
+  end
+
+  def debug_log(message)
+    puts message if @debug
+    @logger&.debug(message)
   end
 
   def get_thread_messages(channel, thread_ts)
-    puts "DEBUG: Fetching messages for channel #{channel}, thread #{thread_ts}"
+    debug_log "DEBUG: Fetching messages for channel #{channel}, thread #{thread_ts}"
     response = api_request('conversations.replies', { channel: channel, ts: thread_ts })
 
     unless response['ok']
@@ -22,7 +29,7 @@ class SlackService
     end
 
     messages = response['messages'] || []
-    puts "DEBUG: Found #{messages.length} messages in thread"
+    debug_log "DEBUG: Found #{messages.length} messages in thread"
 
     return [] if messages.empty?
 
@@ -30,20 +37,20 @@ class SlackService
   end
 
   def join_channel(channel)
-    puts "DEBUG: Attempting to join channel #{channel}"
+    debug_log "DEBUG: Attempting to join channel #{channel}"
     response = api_request('conversations.join', { channel: channel }, method: :post)
 
     if response['ok']
-      puts "DEBUG: Successfully joined channel #{channel}"
+      debug_log "DEBUG: Successfully joined channel #{channel}"
       true
     else
-      puts "DEBUG: Failed to join channel #{channel}: #{response['error']}"
+      debug_log "DEBUG: Failed to join channel #{channel}: #{response['error']}"
       false
     end
   end
 
   def post_message(channel, thread_ts, text)
-    puts "DEBUG: Posting reply to channel #{channel}, thread #{thread_ts}"
+    debug_log "DEBUG: Posting reply to channel #{channel}, thread #{thread_ts}"
 
     message_data = {
       channel: channel,
@@ -56,10 +63,10 @@ class SlackService
     response = api_request('chat.postMessage', message_data, method: :post)
 
     if response['ok']
-      puts 'DEBUG: Successfully posted Slack reply'
+      debug_log 'DEBUG: Successfully posted Slack reply'
       true
     else
-      puts "DEBUG: Failed to post Slack reply: #{response['error']}"
+      debug_log "DEBUG: Failed to post Slack reply: #{response['error']}"
       false
     end
   end
@@ -79,10 +86,10 @@ class SlackService
     if response['ok'] && response['user']
       user = response['user']
       real_name = user['real_name'] || user['display_name'] || user['name'] || user_id
-      puts "DEBUG: Mapped #{user_id} to #{real_name}"
+      debug_log "DEBUG: Mapped #{user_id} to #{real_name}"
       real_name
     else
-      puts "DEBUG: Failed to get user info for #{user_id}, using ID as fallback"
+      debug_log "DEBUG: Failed to get user info for #{user_id}, using ID as fallback"
       user_id
     end
   end
@@ -112,7 +119,7 @@ class SlackService
     when 'not_in_channel'
       puts 'ERROR: Bot not in channel - attempting to join channel automatically'
       if join_channel(channel)
-        puts 'DEBUG: Successfully joined channel, caller should retry'
+        debug_log 'DEBUG: Successfully joined channel, caller should retry'
       else
         puts 'ERROR: Failed to join channel automatically - user needs to add bot manually'
       end
@@ -149,7 +156,7 @@ class SlackService
     messages.each do |message|
       if message['user'] && user_names[message['user']]
         message['user_name'] = user_names[message['user']]
-        puts "DEBUG: Message from #{message['user']} assigned name: #{message['user_name']}"
+        debug_log "DEBUG: Message from #{message['user']} assigned name: #{message['user_name']}"
       end
 
       # Add user mentions mapping to each message

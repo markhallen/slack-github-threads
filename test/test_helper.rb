@@ -10,6 +10,7 @@ require 'json'
 ENV['RACK_ENV'] = 'test'
 ENV['SLACK_BOT_TOKEN'] = 'xoxb-test-token'
 ENV['GITHUB_TOKEN'] = 'ghp_test_token'
+ENV['DEBUG'] = 'false' # Disable debug logging in tests
 
 # Load the application
 require_relative '../app'

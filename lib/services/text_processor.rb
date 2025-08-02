@@ -9,6 +9,10 @@ class TextProcessor
     '&#39;' => "'",
   }.freeze
 
+  def self.debug_log(message)
+    puts message if ENV['DEBUG'] == 'true'
+  end
+
   def self.process_messages(messages)
     messages.map { |m| format_message(m) }.join("\n\n")
   end
@@ -41,12 +45,12 @@ class TextProcessor
     original_text = text.dup
     user_mentions.each do |user_id, user_name|
       if text.include?("<@#{user_id}>")
-        puts "DEBUG: Replacing <@#{user_id}> with @#{user_name}"
+        debug_log "DEBUG: Replacing <@#{user_id}> with @#{user_name}"
         text = text.gsub("<@#{user_id}>", "@#{user_name}")
       end
     end
 
-    puts "DEBUG: Text changed from '#{original_text}' to '#{text}'" if original_text != text
+    debug_log "DEBUG: Text changed from '#{original_text}' to '#{text}'" if original_text != text
 
     text
   end

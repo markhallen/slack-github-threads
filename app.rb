@@ -2,6 +2,8 @@
 
 require 'sinatra'
 require 'json'
+require 'logger'
+require 'fileutils'
 require 'dotenv/load'
 
 # Load our services
@@ -14,11 +16,33 @@ configure do
   set :environment, ENV.fetch('RACK_ENV', 'development')
   set :port, ENV.fetch('PORT', 3000)
 
-  # Add startup logging
-  puts 'Starting gh-commenter app...'
-  puts "RACK_ENV: #{ENV.fetch('RACK_ENV', nil)}"
-  puts "PORT: #{ENV.fetch('PORT', nil)}"
-  puts "Environment variables loaded: #{ENV.keys.grep(/GITHUB|SLACK/).join(', ')}"
+  # Enable debug mode in development or when explicitly set
+  set :debug_mode, ENV.fetch('DEBUG', nil) == 'true' || development?
+
+  # Setup logging
+  log_dir = File.join(settings.root, 'log')
+  FileUtils.mkdir_p(log_dir)
+
+  log_file = File.join(log_dir, "#{settings.environment}.log")
+  log_device = settings.environment == 'test' ? StringIO.new : log_file
+
+  set :logger, Logger.new(log_device, level: settings.debug_mode ? Logger::DEBUG : Logger::INFO)
+
+  # Configure Sinatra's built-in logging
+  set :logging, true
+  set :dump_errors, settings.debug_mode
+
+  # Add startup logging (only in debug mode)
+  if settings.debug_mode
+    puts 'Starting gh-commenter app...'
+    puts "RACK_ENV: #{ENV.fetch('RACK_ENV', nil)}"
+    puts "PORT: #{ENV.fetch('PORT', nil)}"
+    puts "Environment variables loaded: #{ENV.keys.grep(/GITHUB|SLACK/).join(', ')}"
+    puts "Log file: #{log_file}"
+  end
+
+  # Log startup
+  settings.logger.info "Starting gh-commenter app (#{settings.environment})"
 end
 
 # Helpers
@@ -28,10 +52,26 @@ helpers do
     response_hash.to_json
   end
 
+  def debug_log(message)
+    puts message if settings.debug_mode
+    logger.debug(message)
+  end
+
+  def info_log(message)
+    logger.info(message)
+  end
+
+  def error_log(message)
+    puts "ERROR: #{message}"
+    logger.error(message)
+  end
+
   def comment_service
     @comment_service ||= CommentService.new(
       ENV.fetch('SLACK_BOT_TOKEN', nil),
-      ENV.fetch('GITHUB_TOKEN', nil)
+      ENV.fetch('GITHUB_TOKEN', nil),
+      debug: settings.debug_mode,
+      logger: logger
     )
   end
 
@@ -65,11 +105,12 @@ post '/ghcomment' do
 
   begin
     comment_url = comment_service.post_thread_to_github(channel_id, thread_ts, issue_url)
+    info_log "Successfully posted comment to GitHub: #{comment_url}"
     status 200
     "✅ Posted to GitHub: #{comment_url}"
   rescue StandardError => e
-    puts "ERROR in /ghcomment: #{e.message}"
-    puts e.backtrace
+    error_log "Failed to post comment: #{e.message}"
+    error_log e.backtrace.join("\n")
     halt 500, "Failed to post comment: #{e.message}"
   end
 end
@@ -97,7 +138,7 @@ end
 
 def handle_global_shortcut(payload)
   trigger_id = payload['trigger_id']
-  puts 'DEBUG: Global shortcut triggered'
+  debug_log 'DEBUG: Global shortcut triggered'
 
   result = comment_service.open_global_shortcut_modal(trigger_id)
 
@@ -111,7 +152,7 @@ def handle_message_shortcut(payload)
   message_ts = payload.dig('message', 'ts')
   thread_ts = payload.dig('message', 'thread_ts') || message_ts
 
-  puts "DEBUG: Message shortcut - Channel: #{channel_id}, Thread: #{thread_ts}"
+  debug_log "DEBUG: Message shortcut - Channel: #{channel_id}, Thread: #{thread_ts}"
 
   result = comment_service.open_message_shortcut_modal(trigger_id, channel_id, thread_ts)
 
@@ -142,7 +183,7 @@ def handle_global_modal_submission(payload)
   thread_url = payload.dig('view', 'state', 'values', 'thread_block', 'thread_url', 'value')
   issue_url = payload.dig('view', 'state', 'values', 'issue_block', 'issue_url', 'value')
 
-  puts "DEBUG: Global shortcut submission - Thread URL: #{thread_url}, Issue URL: #{issue_url}"
+  debug_log "DEBUG: Global shortcut submission - Thread URL: #{thread_url}, Issue URL: #{issue_url}"
 
   # Parse Slack thread URL
   thread_info = TextProcessor.parse_slack_thread_url(thread_url)
@@ -162,7 +203,7 @@ def handle_message_modal_submission(payload)
   thread_ts = metadata['thread_ts']
   issue_url = payload.dig('view', 'state', 'values', 'issue_block', 'issue_url', 'value')
 
-  puts "DEBUG: Message shortcut submission - Channel: #{channel_id}, Thread: #{thread_ts}, Issue: #{issue_url}"
+  debug_log "DEBUG: Message shortcut submission - Channel: #{channel_id}, Thread: #{thread_ts}, Issue: #{issue_url}"
 
   process_modal_submission(channel_id, thread_ts, issue_url)
 end
@@ -178,10 +219,11 @@ def process_modal_submission(channel_id, thread_ts, issue_url)
 
   begin
     comment_service.post_thread_to_github(channel_id, thread_ts, issue_url)
+    info_log "Successfully posted comment via modal to GitHub issue: #{issue_url}"
     status 200
     body '' # Required response for modals
   rescue StandardError => e
-    puts "ERROR in modal submission: #{e.message}"
+    error_log "Failed to post comment via modal: #{e.message}"
     status 200
     json(response_action: 'errors', errors: {
            issue_block: "Failed to post comment: #{e.message}",

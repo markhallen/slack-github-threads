@@ -60,6 +60,7 @@ Create a `.env` file with the following variables:
 ```env
 SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
 GITHUB_TOKEN=ghp_your-github-personal-access-token
+DEBUG=false  # Optional: set to 'true' for debug logging
 ```
 
 ### Getting Tokens
@@ -211,6 +212,44 @@ bundle exec rake syntax      # Check syntax only
 # Run specific test groups
 bundle exec rake test_services
 bundle exec rake test_app
+```
+
+### Debugging and Logging
+
+The application includes comprehensive logging and debug capabilities:
+
+#### Debug Mode
+
+Enable debug mode to see detailed output during development:
+
+```bash
+# Enable debug mode (shows debug logs in console + log file)
+DEBUG=true ruby app.rb
+
+# Or set in your .env file
+DEBUG=true
+```
+
+#### Log Files
+
+The application automatically creates environment-specific log files:
+
+- `log/development.log` - Development environment logs
+- `log/production.log` - Production environment logs
+- `log/test.log` - Test environment uses in-memory logging (no file created)
+
+#### Log Levels
+
+- **INFO**: Application startup, successful operations
+- **DEBUG**: Detailed API interactions, debugging information (only when DEBUG=true)
+- **ERROR**: Failures, exceptions, API errors
+
+Example log output:
+
+```log
+I, [2025-08-02T09:55:53.928339 #94625]  INFO -- : Starting gh-commenter app (development)
+D, [2025-08-02T09:56:15.123456 #94625] DEBUG -- : DEBUG: Successfully posted Slack reply
+E, [2025-08-02T09:56:20.654321 #94625] ERROR -- : Failed to post comment: GitHub API rate limit exceeded
 ```
 
 ### Code Organization
