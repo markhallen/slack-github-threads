@@ -67,13 +67,36 @@ jobs:
               });
 
               const allChecks = [...checks.check_runs, ...statuses];
-              const pendingChecks = allChecks.filter(check =>
+              
+              // Filter out this workflow to avoid waiting for itself
+              const relevantChecks = allChecks.filter(check => {
+                const checkName = check.name || check.context || '';
+                // Exclude auto-merge workflows
+                if (checkName.includes('auto-merge') || checkName.includes('Auto-merge')) {
+                  return false;
+                }
+                // Only wait for actual CI/test checks
+                return checkName.includes('CI') || 
+                       checkName.includes('test') || 
+                       checkName.includes('build') ||
+                       checkName.includes('lint') ||
+                       checkName.includes('RuboCop') ||
+                       checkName === 'ci'; // Our specific CI workflow
+              });
+              
+              console.log(`Total checks found: ${allChecks.length}`);
+              console.log(`Relevant checks after filtering: ${relevantChecks.length}`);
+              if (relevantChecks.length > 0) {
+                console.log('Relevant checks:', relevantChecks.map(c => c.name || c.context).join(', '));
+              }
+              
+              const pendingChecks = relevantChecks.filter(check =>
                 check.status === 'queued' ||
                 check.status === 'in_progress' ||
                 check.state === 'pending'
               );
 
-              const failedChecks = allChecks.filter(check =>
+              const failedChecks = relevantChecks.filter(check =>
                 check.conclusion === 'failure' ||
                 check.conclusion === 'cancelled' ||
                 check.state === 'failure' ||
@@ -86,9 +109,12 @@ jobs:
                 return;
               }
 
-              if (pendingChecks.length === 0) {
+              if (relevantChecks.length === 0) {
+                console.log('No relevant CI checks found, proceeding with merge');
                 allChecksPassed = true;
-                console.log('All checks passed!');
+              } else if (pendingChecks.length === 0) {
+                allChecksPassed = true;
+                console.log('All relevant checks passed!');
               } else {
                 console.log(`Waiting for ${pendingChecks.length} checks to complete...`);
                 console.log('Pending checks:', pendingChecks.map(c => c.name || c.context).join(', '));
