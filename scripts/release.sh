@@ -85,7 +85,11 @@ else
 fi
 
 # Extract the version that was just created
-VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+if [ -z "$VERSION" ]; then
+    print_error "No tags found in the repository. Release creation may have failed."
+    exit 1
+fi
 TAG="v$VERSION"
 
 print_status "Release $VERSION created successfully!"

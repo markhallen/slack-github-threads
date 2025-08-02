@@ -8,6 +8,9 @@ on:
     types: [closed]
     branches: [main]
 
+env:
+  VERSION_REGEX: 'v[0-9]+\.[0-9]+\.[0-9]+'
+
 permissions:
   contents: write
 
@@ -47,7 +50,7 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
         else
           # Extract from PR title (should be "Release vX.Y.Z")
-          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/^v//')
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -oE "$VERSION_REGEX" | sed 's/^v//')
           if [ -z "$VERSION" ]; then
             echo "Could not extract version from PR title: ${{ github.event.pull_request.title }}"
             exit 1

@@ -213,8 +213,8 @@ def update_changelog_file(version, content)
     unreleased_end ||= lines.length
 
     # Insert new section
-    lines.insert(unreleased_end, content.split("\n"))
-    updated_content = lines.flatten.join("\n")
+    lines[unreleased_end, 0] = content.split("\n")
+    updated_content = lines.join("\n")
   else
     # No existing structure, prepend content
     updated_content = content + "\n" + existing_content
