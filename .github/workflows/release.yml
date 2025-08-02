@@ -41,27 +41,30 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
 
-    - name: Extract changelog for version
+    - name: Generate changelog for release
       id: changelog
       run: |
-        # Extract changelog section for this version
+        # Generate changelog dynamically using the version helper
         VERSION="${{ steps.version.outputs.VERSION }}"
-        CHANGELOG_SECTION=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-
-        # If no specific version section found, use unreleased section
-        if [ -z "$CHANGELOG_SECTION" ]; then
-          CHANGELOG_SECTION=$(awk "/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-        fi
-
+        echo "📝 Generating changelog for version $VERSION..."
+        
+        # Use the VersionHelper to generate changelog content
+        CHANGELOG_CONTENT=$(bundle exec ruby -e "
+          require_relative 'lib/version_helper'
+          puts VersionHelper.generate_changelog_for_version('$VERSION')
+        ")
+        
         # Save to file to preserve multiline content
-        echo "$CHANGELOG_SECTION" > changelog_body.txt
-
-        # Also set as output for use in release
+        echo "$CHANGELOG_CONTENT" > changelog_body.txt
+        
+        # Set as output for use in release
         {
           echo 'BODY<<EOF'
-          echo "$CHANGELOG_SECTION"
+          echo "$CHANGELOG_CONTENT"
           echo 'EOF'
         } >> $GITHUB_OUTPUT
+        
+        echo "✅ Generated changelog for version $VERSION"
 
     - name: Build and package application
       run: |
