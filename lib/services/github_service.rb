@@ -32,7 +32,6 @@ class GitHubService
       puts "URL: #{uri}"
       puts "Status: #{res.code} #{res.message}"
       puts "Body: #{res.body}"
-      puts "Request: #{req.body}"
       raise "GitHub error: #{res.body}"
     end
 

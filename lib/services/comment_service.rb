@@ -38,7 +38,7 @@ class CommentService
     # Process messages into formatted text
     thread_text = TextProcessor.process_messages(messages)
 
-    debug_log "DEBUG: Messages: #{messages.length}, Text preview: '#{thread_text[0..100]}'"
+    debug_log "DEBUG: Messages: #{messages.length}, Text length: #{thread_text.length} chars"
 
     # Post to GitHub
     comment_url = @github.create_comment(

@@ -50,7 +50,9 @@ class TextProcessor
       end
     end
 
-    debug_log "DEBUG: Text changed from '#{original_text}' to '#{text}'" if original_text != text
+    if original_text != text
+      debug_log "DEBUG: Text transformation applied (#{original_text.length} -> #{text.length} chars)"
+    end
 
     text
   end
