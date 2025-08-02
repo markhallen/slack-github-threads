@@ -13,6 +13,42 @@ end
 # Default task
 task default: :test
 
+# Help task - show commonly used tasks
+desc 'Show commonly used rake tasks'
+task :help do
+  puts "\n🚀 slack-github-threads - Available Rake Tasks\n\n"
+  
+  puts "📋 Development:"
+  puts "  rake test         # Run all tests"
+  puts "  rake ci           # Run all CI checks (syntax + rubocop + tests)"
+  puts "  rake server       # Start the development server"
+  puts "  rake install      # Install dependencies"
+  puts ""
+  
+  puts "🔧 Code Quality:"
+  puts "  rake syntax       # Check Ruby syntax"
+  puts "  rake rubocop      # Run RuboCop linter"
+  puts ""
+  
+  puts "📦 Release Management:"
+  puts "  rake release:preview  # Preview next release and changelog"
+  puts "  rake release:patch    # Create patch release (bug fixes)"
+  puts "  rake release:minor    # Create minor release (new features)"
+  puts "  rake release:major    # Create major release (breaking changes)"
+  puts ""
+  
+  puts "📚 More Information:"
+  puts "  rake -T           # Show all available tasks with descriptions"
+  puts "  rake -T release   # Show only release-related tasks"
+  puts ""
+  
+  puts "💡 Quick Start:"
+  puts "  1. Run 'rake test' to ensure everything works"
+  puts "  2. Run 'rake release:preview' to see what would be released"
+  puts "  3. Run 'rake release:patch' (or minor/major) to create a release"
+  puts ""
+end
+
 # Test task
 Rake::TestTask.new(:test) do |t|
   t.libs << 'test'

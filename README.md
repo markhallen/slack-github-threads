@@ -209,6 +209,9 @@ docker run -p 3000:3000 --env-file .env slack-github-threads
 ### Running Tests
 
 ```bash
+# Show available rake tasks and quick start guide
+bundle exec rake help
+
 # Run all CI checks (recommended for development)
 bundle exec rake ci
 
