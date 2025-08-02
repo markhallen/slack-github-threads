@@ -1,4 +1,4 @@
-# GitHub Commenter
+# slack-github-threads
 
 A Slack slash command integration that posts Slack thread conversations as comments to GitHub issues.
 
@@ -28,7 +28,7 @@ This Ruby Sinatra application provides a bridge between Slack and GitHub, allowi
 
    ```bash
    git clone <your-repo-url>
-   cd gh-commenter
+   cd slack-github-threads
    ```
 
 2. Install dependencies:
@@ -150,10 +150,10 @@ You can also run the application using Docker:
 
 ```bash
 # Build the image
-docker build -t gh-commenter .
+docker build -t slack-github-threads .
 
 # Run the container
-docker run -p 3000:3000 --env-file .env gh-commenter
+docker run -p 3000:3000 --env-file .env slack-github-threads
 ```
 
 ## Project Structure
