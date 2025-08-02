@@ -3,6 +3,10 @@
 [![CI](https://github.com/markhallen/slack-github-threads/actions/workflows/ci.yml/badge.svg)](https://github.com/markhallen/slack-github-threads/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+<p align="center">
+  <img src="docs/images/slack-github-threads-logo.png" alt="Slack GitHub Threads Logo" width="300" style="background-color: white; padding: 20px; border-radius: 10px;">
+</p>
+
 A Slack slash command integration that posts Slack thread conversations as comments to GitHub issues.
 
 ## Overview
