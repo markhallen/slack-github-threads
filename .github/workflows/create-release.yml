@@ -110,13 +110,13 @@ jobs:
       run: |
         VERSION_TAG="v${{ steps.next_version.outputs.NEXT_VERSION }}"
         echo "📤 Pushing changes and tag $VERSION_TAG to GitHub..."
-
+        
         # Push any changelog changes
         git push origin main
-
+        
         # Push the version tag (this will trigger the release.yml workflow)
         git push origin "$VERSION_TAG"
-
+        
         echo "✅ Successfully pushed tag $VERSION_TAG"
         echo "🎯 The release.yml workflow will now create the GitHub release automatically"
 

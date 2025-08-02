@@ -297,13 +297,13 @@ This project supports multiple release workflows: automated GitHub Actions, smar
 
 Create releases directly from GitHub's web interface:
 
-1. **Go to Actions tab** → **"Create Release PR"** workflow
+1. **Go to Actions tab** → **"Create Release"** workflow
 2. **Click "Run workflow"** and choose:
    - `auto` - Let the system analyze commits and suggest release type
    - `major/minor/patch` - Specify release type manually
    - `dry_run` - Preview what would be released
-3. **Review and merge** the created PR
-4. **Release is automatically published** when PR merges
+3. **The release is created immediately** - no PR needed!
+4. **GitHub release is automatically published** with changelog
 
 ### 🧠 Smart Local Release Process
 
