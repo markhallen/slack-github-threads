@@ -1,6 +1,7 @@
 # Code Refactoring: Extracted Version Helper
 
 ## Problem
+
 The GitHub Actions workflow in `.github/workflows/create-release-pr.yml` contained inline Ruby code that duplicated version bumping logic from the Rakefile:
 
 ```ruby
@@ -13,23 +14,27 @@ NEXT_VERSION=$(ruby -e "
 ```
 
 This created several issues:
+
 - **Code duplication** between Rakefile and GitHub Actions
 - **Maintenance burden** when updating version logic
 - **Fragile inline code** that's hard to test and debug
 - **Poor separation of concerns**
 
 ## Solution
+
 Created a dedicated `VersionHelper` module and CLI script to centralize all version-related logic:
 
 ### 1. New Files Created
 
 #### `lib/version_helper.rb`
+
 - **Centralized version logic** for semantic versioning operations
 - **Conventional commit analysis** for automatic version bump detection
 - **Changelog generation** with proper categorization
 - **Comprehensive error handling** and validation
 
 #### `scripts/version.rb`
+
 - **CLI interface** for version operations
 - **GitHub Actions friendly** with simple command interface
 - **Executable script** that can be called from any environment
@@ -37,6 +42,7 @@ Created a dedicated `VersionHelper` module and CLI script to centralize all vers
 ### 2. Key Refactoring Changes
 
 #### Before (Duplicated):
+
 ```ruby
 # In Rakefile
 def bump_version(version, bump_type)
@@ -48,6 +54,7 @@ NEXT_VERSION=$(ruby -e "complex inline code")
 ```
 
 #### After (DRY):
+
 ```ruby
 # In lib/version_helper.rb
 module VersionHelper
@@ -68,11 +75,13 @@ NEXT_VERSION=$(ruby scripts/version.rb next "$RELEASE_TYPE")
 ### 3. Updated Components
 
 #### Rakefile
+
 - **Simplified helper methods** that delegate to VersionHelper
 - **Removed duplicate logic** for commit analysis and version bumping
 - **Enhanced preview task** using centralized version info
 
 #### GitHub Actions Workflow
+
 - **Replaced inline Ruby** with clean CLI script calls
 - **Improved maintainability** with external script dependency
 - **Better error handling** and debugging capabilities
@@ -99,22 +108,27 @@ ruby scripts/version.rb info
 ## Benefits
 
 ### ✅ **Eliminated Code Duplication**
+
 - Single source of truth for version logic
 - Consistent behavior across all tools
 
 ### ✅ **Improved Maintainability**
+
 - Changes only need to be made in one place
 - Easier to test and debug version logic
 
 ### ✅ **Better Separation of Concerns**
+
 - Version logic isolated in dedicated module
 - CLI script provides clean interface
 
 ### ✅ **Enhanced Testability**
+
 - Helper module can be unit tested independently
 - CLI script provides clear interfaces
 
 ### ✅ **GitHub Actions Optimization**
+
 - Cleaner workflow YAML without inline Ruby
 - Better error messages and debugging
 
@@ -139,10 +153,12 @@ ruby scripts/version.rb info
 ## Files Modified
 
 ### New Files
+
 - `lib/version_helper.rb` - Centralized version management module
 - `scripts/version.rb` - CLI interface for version operations
 
 ### Modified Files
+
 - `Rakefile` - Updated to use VersionHelper instead of duplicated logic
 - `.github/workflows/create-release-pr.yml` - Replaced inline Ruby with CLI script calls
 

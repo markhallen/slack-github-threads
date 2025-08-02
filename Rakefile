@@ -192,7 +192,7 @@ end
 def generate_changelog_for_version(version)
   content = VersionHelper.generate_changelog_for_version(version)
   puts content
-  
+
   # Update CHANGELOG.md if it exists
   if File.exist?('CHANGELOG.md')
     update_changelog_file(version, content)
@@ -227,7 +227,7 @@ end
 def create_changelog_file(version, content)
   changelog_file = 'CHANGELOG.md'
   header = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n## [Unreleased]\n\n"
-  
+
   File.write(changelog_file, header + content)
   puts "✅ Created #{changelog_file} with version #{version}"
 end

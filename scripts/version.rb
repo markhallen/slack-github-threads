@@ -13,7 +13,7 @@ require_relative '../lib/version_helper'
 
 def main
   command = ARGV[0]
-  
+
   case command
   when 'current'
     puts VersionHelper.current_version || 'none'
@@ -31,13 +31,13 @@ def main
     puts "Next major: #{info[:next_major]}"
   else
     puts "Usage: #{$0} <command> [args]"
-    puts ""
-    puts "Commands:"
-    puts "  current           Get current version"
-    puts "  next [type]       Get next version (auto/major/minor/patch)"
-    puts "  bump [type]       Same as next (alias)"
-    puts "  analyze           Analyze commits for suggested release type"
-    puts "  info              Get all version information"
+    puts ''
+    puts 'Commands:'
+    puts '  current           Get current version'
+    puts '  next [type]       Get next version (auto/major/minor/patch)'
+    puts '  bump [type]       Same as next (alias)'
+    puts '  analyze           Analyze commits for suggested release type'
+    puts '  info              Get all version information'
     exit 1
   end
 rescue StandardError => e
