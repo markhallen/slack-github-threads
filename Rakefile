@@ -26,8 +26,9 @@ task :help do
   puts ""
   
   puts "🔧 Code Quality:"
-  puts "  rake syntax       # Check Ruby syntax"
-  puts "  rake rubocop      # Run RuboCop linter"
+  puts "  rake lint         # Run linting checks (syntax + rubocop)"
+  puts "  rake syntax       # Check Ruby syntax only"
+  puts "  rake rubocop      # Run RuboCop linter only"
   puts ""
   
   puts "📦 Release Management:"
@@ -90,10 +91,10 @@ task :syntax do
   puts 'All files have valid syntax!'
 end
 
-# Run all CI checks (same as GitHub Actions)
-desc 'Run all CI checks (syntax + rubocop + tests) - same as GitHub Actions'
-task :ci do
-  puts '🔍 Running CI checks...'
+# Run linting checks (syntax + rubocop)
+desc 'Run linting checks (syntax + rubocop)'
+task :lint do
+  puts '🔍 Running linting checks...'
 
   puts "\n📋 Step 1: Checking syntax..."
   Rake::Task[:syntax].invoke
@@ -105,7 +106,18 @@ task :ci do
     puts '⚠️  RuboCop not available, skipping...'
   end
 
-  puts "\n🧪 Step 3: Running tests..."
+  puts "\n✅ All linting checks passed!"
+end
+
+# Run all CI checks (same as GitHub Actions)
+desc 'Run all CI checks (syntax + rubocop + tests) - same as GitHub Actions'
+task :ci do
+  puts '🔍 Running CI checks...'
+
+  puts "\n� Step 1: Running linting checks..."
+  Rake::Task[:lint].invoke
+
+  puts "\n🧪 Step 2: Running tests..."
   Rake::Task[:test].invoke
 
   puts "\n✅ All CI checks passed!"

@@ -215,10 +215,13 @@ bundle exec rake help
 # Run all CI checks (recommended for development)
 bundle exec rake ci
 
-# Individual commands
-bundle exec rake rubocop     # Run RuboCop linter
-bundle exec rake test        # Run all tests
+# Code quality checks
+bundle exec rake lint        # Run linting (syntax + rubocop)
+bundle exec rake rubocop     # Run RuboCop linter only
 bundle exec rake syntax      # Check syntax only
+
+# Testing
+bundle exec rake test        # Run all tests
 
 # Run specific test groups
 bundle exec rake test_services
