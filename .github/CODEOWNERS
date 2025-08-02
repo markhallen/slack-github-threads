@@ -1,0 +1,22 @@
+# Code Owners for slack-github-threads
+# This file defines who will be automatically requested for review when changes are made to specific files.
+# For more information, see: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners - will be requested for review on all PRs
+* @markhallen
+
+# Dependency updates (Dependabot PRs)
+Gemfile @markhallen
+Gemfile.lock @markhallen
+Dockerfile @markhallen
+.github/workflows/ @markhallen
+
+# Configuration files
+config/ @markhallen
+.kamal/ @markhallen
+
+# Documentation
+README.md @markhallen
+docs/ @markhallen
+CONTRIBUTING.md @markhallen
+SECURITY.md @markhallen

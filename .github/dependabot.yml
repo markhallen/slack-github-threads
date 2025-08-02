@@ -8,10 +8,6 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "your-username" # Replace with actual GitHub username
-    assignees:
-      - "your-username" # Replace with actual GitHub username
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
@@ -39,10 +35,6 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
-    reviewers:
-      - "your-username" # Replace with actual GitHub username
-    assignees:
-      - "your-username" # Replace with actual GitHub username
     commit-message:
       prefix: "ci"
       include: "scope"
@@ -58,10 +50,6 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
-    reviewers:
-      - "your-username" # Replace with actual GitHub username
-    assignees:
-      - "your-username" # Replace with actual GitHub username
     commit-message:
       prefix: "docker"
       include: "scope"
