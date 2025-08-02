@@ -13,10 +13,10 @@ class TextProcessor
 
   def self.format_message(message)
     text = message['text'] || ''
-    
+
     # Decode HTML entities
     text = decode_html_entities(text)
-    
+
     # Replace user mentions with actual names
     text = replace_user_mentions(text, message['user_mentions'])
 

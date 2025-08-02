@@ -3,7 +3,7 @@ require_relative 'test_helper'
 class AppTest < Minitest::Test
   def test_health_check
     get '/up'
-    
+
     assert last_response.ok?
     assert_equal 'OK', last_response.body
   end
@@ -182,7 +182,7 @@ class AppTest < Minitest::Test
     # Temporarily unset environment variables
     old_slack_token = ENV['SLACK_BOT_TOKEN']
     old_github_token = ENV['GITHUB_TOKEN']
-    
+
     ENV.delete('SLACK_BOT_TOKEN')
     ENV.delete('GITHUB_TOKEN')
 

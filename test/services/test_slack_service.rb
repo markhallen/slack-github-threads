@@ -9,7 +9,7 @@ class SlackServiceTest < Minitest::Test
 
   def test_get_thread_messages_success
     messages = [slack_message('U123', 'Hello world', 'John Doe')]
-    
+
     # Stub conversations.replies
     stub_request(:get, "https://slack.com/api/conversations.replies")
       .with(query: { channel: 'C123', ts: '1234567890.123456' })
@@ -23,7 +23,7 @@ class SlackServiceTest < Minitest::Test
     stub_slack_users_info('U123', 'John Doe')
 
     result = @service.get_thread_messages('C123', '1234567890.123456')
-    
+
     assert_equal 1, result.length
     assert_equal 'Hello world', result[0]['text']
     assert_equal 'John Doe', result[0]['user_name']
@@ -31,7 +31,7 @@ class SlackServiceTest < Minitest::Test
 
   def test_get_thread_messages_with_mentions
     messages = [slack_message('U123', 'Hello <@U456>', 'John Doe')]
-    
+
     stub_request(:get, "https://slack.com/api/conversations.replies")
       .with(query: { channel: 'C123', ts: '1234567890.123456' })
       .to_return(
@@ -45,7 +45,7 @@ class SlackServiceTest < Minitest::Test
     stub_slack_users_info('U456', 'Jane Smith')
 
     result = @service.get_thread_messages('C123', '1234567890.123456')
-    
+
     assert_equal 1, result.length
     assert_includes result[0]['user_mentions'], 'U456'
     assert_equal 'Jane Smith', result[0]['user_mentions']['U456']
@@ -70,7 +70,7 @@ class SlackServiceTest < Minitest::Test
       )
 
     result = @service.get_thread_messages('C123', '1234567890.123456')
-    
+
     assert_empty result
   end
 

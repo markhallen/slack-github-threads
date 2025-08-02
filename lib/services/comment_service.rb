@@ -16,7 +16,7 @@ class CommentService
 
     # Get messages from Slack thread
     messages = @slack.get_thread_messages(channel_id, thread_ts)
-    
+
     # Handle retry for channel joining
     if messages.empty?
       # Try once more in case we just joined the channel
@@ -28,21 +28,21 @@ class CommentService
 
     # Process messages into formatted text
     thread_text = TextProcessor.process_messages(messages)
-    
+
     puts "DEBUG: Messages: #{messages.length}, Text preview: '#{thread_text[0..100]}'"
 
     # Post to GitHub
     comment_url = @github.create_comment(
-      github_info[:org], 
-      github_info[:repo], 
-      github_info[:issue_number], 
+      github_info[:org],
+      github_info[:repo],
+      github_info[:issue_number],
       thread_text
     )
 
     # Post reply to Slack thread
     @slack.post_message(
-      channel_id, 
-      thread_ts, 
+      channel_id,
+      thread_ts,
       "✅ Thread posted to GitHub: #{comment_url}"
     )
 

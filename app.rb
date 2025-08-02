@@ -11,7 +11,7 @@ require_relative 'lib/helpers/modal_builder'
 configure do
   set :environment, ENV.fetch('RACK_ENV', 'development')
   set :port, ENV.fetch('PORT', 3000)
-  
+
   # Add startup logging
   puts "Starting gh-commenter app..."
   puts "RACK_ENV: #{ENV['RACK_ENV']}"
@@ -37,7 +37,7 @@ helpers do
     missing = []
     missing << 'SLACK_BOT_TOKEN' unless ENV['SLACK_BOT_TOKEN']
     missing << 'GITHUB_TOKEN' unless ENV['GITHUB_TOKEN']
-    
+
     unless missing.empty?
       halt 500, "Missing environment variables: #{missing.join(', ')}"
     end
@@ -100,7 +100,7 @@ def handle_global_shortcut(payload)
   puts "DEBUG: Global shortcut triggered"
 
   result = comment_service.open_global_shortcut_modal(trigger_id)
-  
+
   status result[:status_code]
   body result[:body]
 end
@@ -114,7 +114,7 @@ def handle_message_shortcut(payload)
   puts "DEBUG: Message shortcut - Channel: #{channel_id}, Thread: #{thread_ts}"
 
   result = comment_service.open_message_shortcut_modal(trigger_id, channel_id, thread_ts)
-  
+
   # For message shortcuts, return empty response if modal opened successfully
   if result[:success]
     status 200
@@ -148,8 +148,8 @@ def handle_global_modal_submission(payload)
   thread_info = TextProcessor.parse_slack_thread_url(thread_url)
   unless thread_info
     status 200
-    return json(response_action: 'errors', errors: { 
-      thread_block: 'Invalid Slack URL format. Please copy the link from a message in the thread.' 
+    return json(response_action: 'errors', errors: {
+      thread_block: 'Invalid Slack URL format. Please copy the link from a message in the thread.'
     })
   end
 
@@ -171,8 +171,8 @@ def process_modal_submission(channel_id, thread_ts, issue_url)
   # Validate GitHub issue URL
   unless GitHubService.parse_issue_url(issue_url)
     status 200
-    return json(response_action: 'errors', errors: { 
-      issue_block: 'Invalid GitHub issue URL.' 
+    return json(response_action: 'errors', errors: {
+      issue_block: 'Invalid GitHub issue URL.'
     })
   end
 
@@ -183,8 +183,8 @@ def process_modal_submission(channel_id, thread_ts, issue_url)
   rescue => e
     puts "ERROR in modal submission: #{e.message}"
     status 200
-    json(response_action: 'errors', errors: { 
-      issue_block: "Failed to post comment: #{e.message}" 
+    json(response_action: 'errors', errors: {
+      issue_block: "Failed to post comment: #{e.message}"
     })
   end
 end

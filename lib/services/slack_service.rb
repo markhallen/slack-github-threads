@@ -42,7 +42,7 @@ class SlackService
 
   def post_message(channel, thread_ts, text)
     puts "DEBUG: Posting reply to channel #{channel}, thread #{thread_ts}"
-    
+
     message_data = {
       channel: channel,
       thread_ts: thread_ts,
@@ -73,7 +73,7 @@ class SlackService
 
   def get_user_info(user_id)
     response = api_request('users.info', { user: user_id })
-    
+
     if response['ok'] && response['user']
       user = response['user']
       real_name = user['real_name'] || user['display_name'] || user['name'] || user_id
@@ -89,7 +89,7 @@ class SlackService
 
   def api_request(endpoint, params = {}, method: :get)
     uri = URI("#{API_BASE}/#{endpoint}")
-    
+
     if method == :get
       uri.query = URI.encode_www_form(params) unless params.empty?
       req = Net::HTTP::Get.new(uri)
@@ -100,7 +100,7 @@ class SlackService
     end
 
     req['Authorization'] = "Bearer #{@token}"
-    
+
     res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
     JSON.parse(res.body)
   end

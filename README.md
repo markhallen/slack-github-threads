@@ -206,7 +206,7 @@ bundle exec rake syntax
 The application follows Sinatra best practices with clear separation of concerns:
 
 - **Services**: Handle external API interactions and business logic
-- **Helpers**: Provide utility functions and UI components  
+- **Helpers**: Provide utility functions and UI components
 - **Controllers**: Slim route handlers that delegate to services
 - **Tests**: Comprehensive test coverage using Minitest with WebMock for API stubbing
 
