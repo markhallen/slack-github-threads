@@ -52,9 +52,13 @@ This Ruby Sinatra application provides a bridge between Slack and GitHub, allowi
    ```
 
 4. (Optional) Set up Kamal deployment secrets:
+
    ```bash
    cp .kamal/secrets.example .kamal/secrets
    # Edit .kamal/secrets with your deployment credentials
+
+   cp config/deploy.yml.example config/deploy.yml
+   # Edit config/deploy.yml with your deployment settings
    ```
 
 ## Environment Variables
@@ -151,7 +155,7 @@ This project is configured for deployment using [Kamal](https://kamal-deploy.org
 
 2. Set up your secrets (see `.kamal/secrets` file)
 
-3. Configure your deployment settings in `config/deploy.yml`
+3. Configure your deployment settings in `config/deploy.yml` (copy from `config/deploy.yml.example`)
 
 ### Deploy
 
@@ -195,7 +199,7 @@ docker run -p 3000:3000 --env-file .env slack-github-threads
 │       ├── test_github_service.rb
 │       └── test_text_processor.rb
 ├── config/
-│   └── deploy.yml              # Kamal deployment configuration
+│   └── deploy.yml.example      # Kamal deployment configuration template
 └── .kamal/
     └── secrets                 # Kamal secrets configuration
 ```

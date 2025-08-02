@@ -102,6 +102,7 @@ coverage/
 # Kamal secrets and deployment
 .kamal/secrets
 .kamal/lock
+config/deploy.yml
 
 # Docker
 .dockerignore
