@@ -75,6 +75,22 @@ DEBUG=false  # Optional: set to 'true' for debug logging
 
 #### Slack Bot Token
 
+You have two options for setting up your Slack app:
+
+##### Option 1: Create App from Manifest (Recommended)
+
+1. Go to [Slack API](https://api.slack.com/apps)
+2. Click "Create New App"
+3. Select "From an app manifest"
+4. Choose your workspace
+5. Copy the contents of [`docs/app-manifest.json`](docs/app-manifest.json) and paste it into the manifest editor
+6. Replace `https://your-domain.com` with your actual domain (e.g., `https://your-app.ngrok.io` for local development)
+7. Review and create the app
+8. Go to "OAuth & Permissions" and install the app to your workspace
+9. Copy the "Bot User OAuth Token"
+
+##### Option 2: Manual Setup
+
 1. Go to [Slack API](https://api.slack.com/apps)
 2. Create a new app or use an existing one
 3. Go to "OAuth & Permissions"
@@ -92,8 +108,13 @@ DEBUG=false  # Optional: set to 'true' for debug logging
 
    **Note**: Even with these scopes, the bot may still need to be added to private channels manually.
 
-5. Install the app to your workspace
-6. Copy the "Bot User OAuth Token"
+5. Set up slash commands and shortcuts:
+   - Go to "Slash Commands" and create `/ghcomment` pointing to `https://your-domain.com/ghcomment`
+   - Go to "Interactivity & Shortcuts" and:
+     - Enable interactivity with Request URL: `https://your-domain.com/shortcut`
+     - Add shortcuts as defined in the app manifest
+6. Install the app to your workspace
+7. Copy the "Bot User OAuth Token"
 
 #### GitHub Token
 
@@ -120,12 +141,16 @@ DEBUG=false  # Optional: set to 'true' for debug logging
 
 3. Configure your Slack slash command to point to `https://your-ngrok-url.ngrok.io/ghcomment`
 
-### Slack Slash Command Setup
+### Slack App Configuration
 
-1. In your Slack app configuration, go to "Slash Commands"
-2. Create a new command (e.g., `/ghcomment`)
-3. Set the Request URL to your application endpoint: `https://your-domain.com/ghcomment`
-4. Configure the command to be used in channels and direct messages
+If you created your app using the manifest (Option 1 above), your slash commands and shortcuts are already configured. Simply update the URLs to match your deployment domain.
+
+If you set up your app manually (Option 2), you'll need to configure:
+
+1. **Slash Commands**: Create `/ghcomment` pointing to `https://your-domain.com/ghcomment`
+2. **Interactivity & Shortcuts**:
+   - Enable interactivity with Request URL: `https://your-domain.com/shortcut`
+   - Add message and global shortcuts as defined in [`docs/app-manifest.json`](docs/app-manifest.json)
 
 ### Using the Command
 
@@ -183,6 +208,8 @@ docker run -p 3000:3000 --env-file .env slack-github-threads
 ├── Gemfile                     # Ruby dependencies
 ├── Dockerfile                  # Docker configuration
 ├── Rakefile                    # Task definitions and test runner
+├── docs/                       # Documentation and configuration
+│   └── app-manifest.json       # Slack app manifest for easy setup
 ├── lib/                        # Application modules
 │   ├── services/               # Business logic services
 │   │   ├── slack_service.rb    # Slack API interactions
