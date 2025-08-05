@@ -2,24 +2,58 @@
 
 [![CI](https://github.com/markhallen/slack-github-threads/actions/workflows/ci.yml/badge.svg)](https://github.com/markhallen/slack-github-threads/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Ruby](https://img.shields.io/badge/Ruby-3.2+-red.svg)](https://www.ruby-lang.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
 <p align="center">
   <img src="docs/images/slack-github-threads-logo-white.png" alt="Slack GitHub Threads Logo" width="300">
 </p>
 
-A Slack slash command integration that posts Slack thread conversations as comments to GitHub issues.
+**🚀 Bridge the gap between Slack discussions and GitHub issues**
+
+A powerful Slack integration that seamlessly exports thread conversations as formatted comments to GitHub issues. Perfect for development teams who discuss features, bugs, and decisions in Slack but need to document them in GitHub.
 
 ## Overview
 
 This Ruby Sinatra application provides a bridge between Slack and GitHub, allowing you to easily share Slack thread discussions as comments on GitHub issues. When you use the slash command with a GitHub issue URL, it will collect all messages in the current thread and post them as a formatted comment to the specified GitHub issue.
 
+## 🎬 Demo
+
+See the tool in action! This demo shows how a Slack thread conversation gets beautifully formatted and posted to a GitHub issue:
+
+<video src="https://user-images.githubusercontent.com/your-username/your-video-id/slack-github-threads-demo.mp4" controls width="640">
+  Your browser does not support the video tag. <a href="https://user-images.githubusercontent.com/your-username/your-video-id/slack-github-threads-demo.mp4">Watch the demo video</a>
+</video>
+
+**📋 Live Example**: Check out [Issue #12](https://github.com/markhallen/slack-github-threads/issues/12) to see a real Slack thread that was exported using this tool.
+
+## ⚡ Quick Start
+
+Ready to get started? Here's the fastest way to set up slack-github-threads:
+
+1. **Create your Slack app** using our [app manifest](docs/app-manifest.json) (just 2 minutes!)
+2. **Deploy to your server** or run locally with Docker
+3. **Start exporting threads** with `/ghcomment [github-issue-url]`
+
+👉 **New to this?** Follow our [detailed setup guide](#installation) for step-by-step instructions.
+
 ## Features
 
-- 🔗 **Slack Integration**: Works as a Slack slash command
-- 📝 **Thread Collection**: Captures entire Slack thread conversations
-- 🐙 **GitHub Integration**: Posts formatted comments to GitHub issues
-- 🚀 **Easy Deployment**: Configured for deployment with Kamal
+- 🔗 **Slack Integration**: Works seamlessly as a Slack slash command and shortcuts
+- 📝 **Thread Collection**: Captures entire Slack thread conversations with user attribution
+- 🐙 **GitHub Integration**: Posts beautifully formatted comments to GitHub issues
+- ⚡ **Instant Setup**: One-click app creation using Slack app manifest
+- 🚀 **Easy Deployment**: Configured for deployment with Kamal or Docker
 - 🔒 **Secure**: Uses environment variables for sensitive tokens
+- 🎯 **Smart Formatting**: Preserves message structure, usernames, and timestamps
+- 📱 **Multiple Interfaces**: Slash commands, message shortcuts, and global shortcuts
+
+### Why Use This Tool?
+
+- **Bridge Communication Gaps**: Seamlessly move Slack discussions to GitHub where they belong
+- **Preserve Context**: Keep the conversational flow and user attribution intact
+- **Save Time**: No more copy-pasting individual messages or losing discussion context
+- **Team Collaboration**: Make Slack conversations accessible to your entire development team
 
 ## Prerequisites
 
