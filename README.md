@@ -21,9 +21,7 @@ This Ruby Sinatra application provides a bridge between Slack and GitHub, allowi
 
 See the tool in action! This demo shows how a Slack thread conversation gets beautifully formatted and posted to a GitHub issue:
 
-<video src="https://user-images.githubusercontent.com/your-username/your-video-id/slack-github-threads-demo.mp4" controls width="640">
-  Your browser does not support the video tag. <a href="https://user-images.githubusercontent.com/your-username/your-video-id/slack-github-threads-demo.mp4">Watch the demo video</a>
-</video>
+https://github.com/user-attachments/assets/259b82d4-6575-4345-928b-ddbaed87420a
 
 **📋 Live Example**: Check out [Issue #12](https://github.com/markhallen/slack-github-threads/issues/12) to see a real Slack thread that was exported using this tool.
 
