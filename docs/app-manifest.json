@@ -1,0 +1,67 @@
+{
+    "display_information": {
+        "name": "GitHub Threads",
+        "description": "A Slack slash command integration that posts Slack thread conversations as comments to GitHub issues.",
+        "background_color": "#2c2d30",
+        "long_description": "This app provides a bridge between Slack and GitHub, allowing you to easily share Slack thread discussions as comments on GitHub issues. When you use the slash command with a GitHub issue URL, it will collect all messages in the current thread and post them as a formatted comment to the specified GitHub issue."
+    },
+    "features": {
+        "app_home": {
+            "home_tab_enabled": true,
+            "messages_tab_enabled": false,
+            "messages_tab_read_only_enabled": false
+        },
+        "bot_user": {
+            "display_name": "GitHub Threads",
+            "always_online": true
+        },
+        "shortcuts": [
+            {
+                "name": "Post thread to GitHub",
+                "type": "message",
+                "callback_id": "post_message_to_gh",
+                "description": "Post the thread content as a comment on a GitHub issue"
+            },
+            {
+                "name": "Post thread to GitHub",
+                "type": "global",
+                "callback_id": "post_to_gh",
+                "description": "Post the thread content as a comment on a GitHub issue"
+            }
+        ],
+        "slash_commands": [
+            {
+                "command": "/ghcomment",
+                "url": "https://your-domain.com/ghcomment",
+                "description": "Post this thread to a GitHub issue",
+                "usage_hint": "[github issue url]",
+                "should_escape": false
+            }
+        ]
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "channels:history",
+                "chat:write",
+                "commands",
+                "users:read",
+                "channels:join",
+                "channels:read",
+                "groups:history",
+                "groups:read",
+                "im:history",
+                "mpim:history"
+            ]
+        }
+    },
+    "settings": {
+        "interactivity": {
+            "is_enabled": true,
+            "request_url": "https://your-domain.com/shortcut"
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false
+    }
+}

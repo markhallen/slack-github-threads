@@ -47,23 +47,23 @@ jobs:
         # Generate changelog dynamically using the version helper
         VERSION="${{ steps.version.outputs.VERSION }}"
         echo "📝 Generating changelog for version $VERSION..."
-        
+
         # Use the VersionHelper to generate changelog content
         CHANGELOG_CONTENT=$(bundle exec ruby -e "
           require_relative 'lib/version_helper'
           puts VersionHelper.generate_changelog_for_version('$VERSION')
         ")
-        
+
         # Save to file to preserve multiline content
         echo "$CHANGELOG_CONTENT" > changelog_body.txt
-        
+
         # Set as output for use in release
         {
           echo 'BODY<<EOF'
           echo "$CHANGELOG_CONTENT"
           echo 'EOF'
         } >> $GITHUB_OUTPUT
-        
+
         echo "✅ Generated changelog for version $VERSION"
 
     - name: Build and package application
