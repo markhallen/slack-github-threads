@@ -17,6 +17,10 @@ updates:
       - "ruby"
     # Group patch updates together
     groups:
+      rubocop:
+        patterns:
+          - "rubocop*"
+        dependency-type: "direct"
       patch-updates:
         patterns:
           - "*"
