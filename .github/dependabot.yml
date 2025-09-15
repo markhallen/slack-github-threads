@@ -20,7 +20,7 @@ updates:
       rubocop:
         patterns:
           - "rubocop*"
-        dependency-type: "direct"
+        dependency-type: "development"
       patch-updates:
         patterns:
           - "*"
