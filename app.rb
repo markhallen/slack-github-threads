@@ -20,7 +20,11 @@ configure do
   set :debug_mode, ENV.fetch('DEBUG', nil) == 'true' || development?
 
   # Setup logging
-  log_dir = File.join(settings.root, 'log')
+  log_dir = if Dir.exist?('/storage')
+              '/storage/log'
+            else
+              File.join(settings.root, 'log')
+            end
   FileUtils.mkdir_p(log_dir)
 
   log_file = File.join(log_dir, "#{settings.environment}.log")

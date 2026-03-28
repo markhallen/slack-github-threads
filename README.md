@@ -220,6 +220,10 @@ This project is configured for deployment using [Kamal](https://kamal-deploy.org
 kamal deploy
 ```
 
+## Once Platform
+
+This app is compatible with [37signals' Once](https://once.com/). See [docs/ONCE.md](docs/ONCE.md) for setup details.
+
 ## Docker
 
 You can also run the application using Docker:
