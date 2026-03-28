@@ -10,6 +10,7 @@ require 'dotenv/load'
 require_relative 'lib/services/comment_service'
 require_relative 'lib/services/text_processor'
 require_relative 'lib/helpers/modal_builder'
+require_relative 'lib/config/project_config'
 
 # Configuration
 configure do
@@ -45,6 +46,19 @@ configure do
     puts "Log file: #{log_file}"
   end
 
+  # Load multi-project config if available
+  config_path = File.join(settings.root, '.config', 'projects.enc')
+  config_passphrase = ENV.fetch('CONFIG_PASSPHRASE', nil)
+
+  if File.exist?(config_path) && config_passphrase
+    project_config = Config::ProjectConfig.new(config_path: config_path)
+    project_config.load!(config_passphrase)
+    set :project_config, project_config
+    settings.logger.info "Loaded #{project_config.projects.length} project(s) from encrypted config"
+  else
+    set :project_config, nil
+  end
+
   # Log startup
   settings.logger.info "Starting slack-github-threads app (#{settings.environment})"
 end
@@ -70,23 +84,29 @@ helpers do
     logger.error(message)
   end
 
-  def comment_service
-    @comment_service ||= CommentService.new(
-      ENV.fetch('SLACK_BOT_TOKEN', nil),
-      ENV.fetch('GITHUB_TOKEN', nil),
-      debug: settings.debug_mode,
-      logger: logger
-    )
+  def resolve_tokens(team_id)
+    if settings.project_config && team_id
+      project = settings.project_config.find_by_team_id(team_id)
+      return [project[:slack_bot_token], project[:github_token]] if project
+    end
+
+    [ENV.fetch('SLACK_BOT_TOKEN', nil), ENV.fetch('GITHUB_TOKEN', nil)]
   end
 
-  def validate_environment!
+  def comment_service_for(team_id)
+    slack_token, github_token = resolve_tokens(team_id)
+    CommentService.new(slack_token, github_token, debug: settings.debug_mode, logger: logger)
+  end
+
+  def validate_tokens!(team_id)
+    slack_token, github_token = resolve_tokens(team_id)
     missing = []
-    missing << 'SLACK_BOT_TOKEN' unless ENV['SLACK_BOT_TOKEN']
-    missing << 'GITHUB_TOKEN' unless ENV['GITHUB_TOKEN']
+    missing << 'Slack bot token' unless slack_token
+    missing << 'GitHub token' unless github_token
 
     return if missing.empty?
 
-    halt 500, "Missing environment variables: #{missing.join(', ')}"
+    halt 500, "Missing credentials: #{missing.join(', ')}"
   end
 end
 
@@ -98,7 +118,8 @@ end
 
 # Slack slash command endpoint
 post '/ghcomment' do
-  validate_environment!
+  team_id = params['team_id']
+  validate_tokens!(team_id)
 
   issue_url = params['text']&.strip
   channel_id = params['channel_id']
@@ -108,7 +129,7 @@ post '/ghcomment' do
   halt 400, 'Missing issue URL.' unless issue_url && !issue_url.empty?
 
   begin
-    comment_url = comment_service.post_thread_to_github(channel_id, thread_ts, issue_url)
+    comment_url = comment_service_for(team_id).post_thread_to_github(channel_id, thread_ts, issue_url)
     info_log "Successfully posted comment to GitHub: #{comment_url}"
     status 200
     "✅ Posted to GitHub: #{comment_url}"
@@ -121,36 +142,37 @@ end
 
 # Slack shortcuts and modal submissions
 post '/shortcut' do
-  validate_environment!
-
   request.body.rewind
   raw_payload = request.body.read
   parsed = URI.decode_www_form(raw_payload).to_h
   payload = JSON.parse(parsed['payload'])
 
+  team_id = payload.dig('team', 'id') || payload.dig('user', 'team_id')
+  validate_tokens!(team_id)
+
   case payload['type']
   when 'shortcut'
-    handle_global_shortcut(payload)
+    handle_global_shortcut(payload, team_id)
   when 'message_action'
-    handle_message_shortcut(payload)
+    handle_message_shortcut(payload, team_id)
   when 'view_submission'
-    handle_modal_submission(payload)
+    handle_modal_submission(payload, team_id)
   else
     halt 400, "Unsupported payload type: #{payload['type']}"
   end
 end
 
-def handle_global_shortcut(payload)
+def handle_global_shortcut(payload, team_id)
   trigger_id = payload['trigger_id']
   debug_log 'DEBUG: Global shortcut triggered'
 
-  result = comment_service.open_global_shortcut_modal(trigger_id)
+  result = comment_service_for(team_id).open_global_shortcut_modal(trigger_id)
 
   status result[:status_code]
   body result[:body]
 end
 
-def handle_message_shortcut(payload)
+def handle_message_shortcut(payload, team_id)
   trigger_id = payload['trigger_id']
   channel_id = payload.dig('channel', 'id')
   message_ts = payload.dig('message', 'ts')
@@ -158,7 +180,7 @@ def handle_message_shortcut(payload)
 
   debug_log "DEBUG: Message shortcut - Channel: #{channel_id}, Thread: #{thread_ts}"
 
-  result = comment_service.open_message_shortcut_modal(trigger_id, channel_id, thread_ts)
+  result = comment_service_for(team_id).open_message_shortcut_modal(trigger_id, channel_id, thread_ts)
 
   # For message shortcuts, return empty response if modal opened successfully
   if result[:success]
@@ -170,20 +192,20 @@ def handle_message_shortcut(payload)
   end
 end
 
-def handle_modal_submission(payload)
+def handle_modal_submission(payload, team_id)
   callback_id = payload.dig('view', 'callback_id')
 
   case callback_id
   when 'gh_comment_modal_global'
-    handle_global_modal_submission(payload)
+    handle_global_modal_submission(payload, team_id)
   when 'gh_comment_modal_message'
-    handle_message_modal_submission(payload)
+    handle_message_modal_submission(payload, team_id)
   else
     halt 400, "Unknown callback ID: #{callback_id}"
   end
 end
 
-def handle_global_modal_submission(payload)
+def handle_global_modal_submission(payload, team_id)
   thread_url = payload.dig('view', 'state', 'values', 'thread_block', 'thread_url', 'value')
   issue_url = payload.dig('view', 'state', 'values', 'issue_block', 'issue_url', 'value')
 
@@ -198,10 +220,10 @@ def handle_global_modal_submission(payload)
                 })
   end
 
-  process_modal_submission(thread_info[:channel_id], thread_info[:thread_ts], issue_url)
+  process_modal_submission(thread_info[:channel_id], thread_info[:thread_ts], issue_url, team_id)
 end
 
-def handle_message_modal_submission(payload)
+def handle_message_modal_submission(payload, team_id)
   metadata = JSON.parse(payload.dig('view', 'private_metadata'))
   channel_id = metadata['channel_id']
   thread_ts = metadata['thread_ts']
@@ -209,10 +231,10 @@ def handle_message_modal_submission(payload)
 
   debug_log "DEBUG: Message shortcut submission - Channel: #{channel_id}, Thread: #{thread_ts}, Issue: #{issue_url}"
 
-  process_modal_submission(channel_id, thread_ts, issue_url)
+  process_modal_submission(channel_id, thread_ts, issue_url, team_id)
 end
 
-def process_modal_submission(channel_id, thread_ts, issue_url)
+def process_modal_submission(channel_id, thread_ts, issue_url, team_id)
   # Validate GitHub issue URL
   unless GitHubService.parse_issue_url(issue_url)
     status 200
@@ -222,7 +244,7 @@ def process_modal_submission(channel_id, thread_ts, issue_url)
   end
 
   begin
-    comment_service.post_thread_to_github(channel_id, thread_ts, issue_url)
+    comment_service_for(team_id).post_thread_to_github(channel_id, thread_ts, issue_url)
     info_log "Successfully posted comment via modal to GitHub issue: #{issue_url}"
     status 200
     body '' # Required response for modals

@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../lib/cli/tui'
+
+config_path = File.join(__dir__, '..', '.config', 'projects.enc')
+tui = CLI::Tui.new(config_path: config_path)
+tui.run

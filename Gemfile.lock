@@ -12,6 +12,7 @@ GEM
     daemons (1.4.1)
     dotenv (3.1.8)
     drb (2.2.3)
+    equatable (0.7.0)
     eventmachine (1.2.7)
     hashdiff (1.2.0)
     json (2.13.2)
@@ -23,11 +24,14 @@ GEM
       prism (~> 1.5)
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
+    necromancer (0.7.0)
     nio4r (2.7.4)
     parallel (1.27.0)
     parser (3.3.9.0)
       ast (~> 2.4.1)
       racc
+    pastel (0.8.0)
+      tty-color (~> 0.5)
     prism (1.9.0)
     public_suffix (6.0.2)
     puma (7.0.1)
@@ -83,13 +87,34 @@ GEM
       logger
       rack (>= 1, < 4)
     tilt (2.7.0)
+    tty-color (0.6.0)
+    tty-cursor (0.7.1)
+    tty-prompt (0.23.1)
+      pastel (~> 0.8)
+      tty-reader (~> 0.8)
+    tty-reader (0.9.0)
+      tty-cursor (~> 0.7)
+      tty-screen (~> 0.8)
+      wisper (~> 2.0)
+    tty-screen (0.8.2)
+    tty-table (0.3.0)
+      equatable (~> 0.5)
+      necromancer (~> 0.3)
+      pastel (~> 0.4)
+      tty-screen (~> 0.2)
+      unicode_utils (~> 1.4.0)
+      verse (~> 0.4)
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.2.0)
+    unicode_utils (1.4.0)
+    verse (0.4.0)
+      unicode_utils (~> 1.4.0)
     webmock (3.25.1)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
+    wisper (2.0.1)
 
 PLATFORMS
   arm64-darwin-24
@@ -106,6 +131,8 @@ DEPENDENCIES
   rubocop-rake
   sinatra
   thin
+  tty-prompt
+  tty-table
   webmock
 
 BUNDLED WITH

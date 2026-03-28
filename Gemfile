@@ -6,6 +6,8 @@ gem 'dotenv'
 gem 'puma'
 gem 'sinatra'
 gem 'thin'
+gem 'tty-prompt'
+gem 'tty-table'
 
 group :development do
   gem 'rake'
