@@ -197,9 +197,8 @@ class AppTest < Minitest::Test
     }
 
     assert_equal 500, last_response.status
-    assert_includes last_response.body, 'Missing environment variables'
-
-    # Restore environment variables
+    assert_includes last_response.body, 'Missing credentials'
+  ensure
     ENV['SLACK_BOT_TOKEN'] = old_slack_token
     ENV['GITHUB_TOKEN'] = old_github_token
   end

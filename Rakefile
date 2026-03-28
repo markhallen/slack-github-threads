@@ -81,6 +81,12 @@ task :server do
   system('bundle exec ruby app.rb')
 end
 
+# Configure multi-project integrations
+desc 'Manage multi-project Slack/GitHub integrations'
+task :config do
+  system('bundle exec ruby bin/slack-gh-config')
+end
+
 # Check syntax of all Ruby files
 desc 'Check syntax of all Ruby files'
 task :syntax do
