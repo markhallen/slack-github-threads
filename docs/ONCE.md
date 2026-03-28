@@ -2,6 +2,16 @@
 
 This application is compatible with [37signals' Once](https://once.com/) platform.
 
+## Installation
+
+When the Once installer prompts for a Docker image path, enter:
+
+```
+ghcr.io/markhallen/slack-github-threads:latest
+```
+
+Or pin to a specific version (e.g., `ghcr.io/markhallen/slack-github-threads:1.0.0`).
+
 ## Compatibility
 
 The app meets all Once requirements:
