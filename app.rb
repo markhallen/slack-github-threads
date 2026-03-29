@@ -50,11 +50,17 @@ configure do
   config_path = File.join(settings.root, '.config', 'projects.enc')
   config_passphrase = ENV.fetch('CONFIG_PASSPHRASE', nil)
 
-  if File.exist?(config_path) && config_passphrase
-    project_config = Config::ProjectConfig.new(config_path: config_path)
-    project_config.load!(config_passphrase)
-    set :project_config, project_config
-    settings.logger.info "Loaded #{project_config.projects.length} project(s) from encrypted config"
+  if File.exist?(config_path)
+    if config_passphrase
+      project_config = Config::ProjectConfig.new(config_path: config_path)
+      project_config.load!(config_passphrase)
+      set :project_config, project_config
+      settings.logger.info "Loaded #{project_config.projects.length} project(s) from encrypted config"
+    else
+      set :project_config, nil
+      settings.logger.warn 'Encrypted project config found but CONFIG_PASSPHRASE is not set; ' \
+                           'falling back to environment variable credentials'
+    end
   else
     set :project_config, nil
   end

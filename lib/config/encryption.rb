@@ -31,8 +31,11 @@ module Config
       Base64.strict_encode64(blob)
     end
 
+    MIN_BLOB_LENGTH = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH
+
     def self.decrypt(encoded_blob, passphrase)
       blob = Base64.strict_decode64(encoded_blob)
+      raise DecryptionError, 'Data too short — file may be corrupted' if blob.bytesize < MIN_BLOB_LENGTH
 
       salt = blob[0, SALT_LENGTH]
       iv = blob[SALT_LENGTH, IV_LENGTH]
@@ -48,7 +51,7 @@ module Config
       cipher.auth_tag = auth_tag
 
       cipher.update(ciphertext) + cipher.final
-    rescue OpenSSL::Cipher::CipherError
+    rescue OpenSSL::Cipher::CipherError, ArgumentError
       raise DecryptionError, 'Decryption failed — wrong passphrase or corrupted data'
     end
 

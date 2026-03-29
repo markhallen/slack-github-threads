@@ -46,6 +46,9 @@ module Config
       raise ArgumentError, 'Project name is required' if project[:name].to_s.strip.empty?
       raise ArgumentError, 'Slack team ID is required' if project[:slack_team_id].to_s.strip.empty?
       raise ArgumentError, "Project '#{project[:name]}' already exists" if find_by_name(project[:name])
+      if find_by_team_id(project[:slack_team_id])
+        raise ArgumentError, "Team ID '#{project[:slack_team_id]}' already in use"
+      end
 
       @projects << project
       project
@@ -59,6 +62,8 @@ module Config
         sym_key = key.to_sym
         project[sym_key] = value if project.key?(sym_key)
       end
+
+      validate_project!(project)
       project
     end
 
@@ -79,6 +84,14 @@ module Config
     end
 
     private
+
+    def validate_project!(project)
+      raise ArgumentError, 'Project name is required' if project[:name].to_s.strip.empty?
+      raise ArgumentError, 'Slack team ID is required' if project[:slack_team_id].to_s.strip.empty?
+
+      duplicate = @projects.find { |p| p[:slack_team_id] == project[:slack_team_id] && p != project }
+      raise ArgumentError, "Team ID '#{project[:slack_team_id]}' already in use" if duplicate
+    end
 
     def normalize_project(attrs)
       {

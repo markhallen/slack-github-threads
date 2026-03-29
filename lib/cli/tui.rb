@@ -18,6 +18,7 @@ module CLI
       @passphrase = prompt_passphrase
       @config.load!(@passphrase)
       main_menu_loop
+      @prompt.warn('Restart the running app for config changes to take effect.') unless @config.empty?
     rescue Config::Encryption::DecryptionError
       @prompt.error('Wrong passphrase. Unable to decrypt config file.')
       exit 1
@@ -27,11 +28,11 @@ module CLI
 
     def prompt_passphrase
       if File.exist?(@config_path)
-        @prompt.mask('Enter config passphrase:')
+        @prompt.mask('Enter config passphrase:', required: true)
       else
         @prompt.ok('No config file found. Creating a new one.')
-        passphrase = @prompt.mask('Choose a passphrase for encrypting your config:')
-        confirm = @prompt.mask('Confirm passphrase:')
+        passphrase = @prompt.mask('Choose a passphrase for encrypting your config:', required: true)
+        confirm = @prompt.mask('Confirm passphrase:', required: true)
         unless passphrase == confirm
           @prompt.error('Passphrases do not match.')
           exit 1
@@ -41,12 +42,19 @@ module CLI
     end
 
     def main_menu_loop
+      handlers = {
+        add_project: -> { add_project },
+        edit_project: -> { edit_project },
+        remove_project: -> { remove_project },
+        list_projects: -> { list_projects },
+      }
+
       loop do
         choices = build_menu_choices
         action = @prompt.select('What would you like to do?', choices)
         break if action == :exit
 
-        send(action)
+        handlers[action]&.call
       end
     end
 
@@ -94,8 +102,8 @@ module CLI
       project = @config.find_by_name(name)
       updates = {}
 
-      updates[:name] = @prompt.ask('Project name:', default: project[:name])
-      updates[:slack_team_id] = @prompt.ask('Slack team ID:', default: project[:slack_team_id])
+      updates[:name] = @prompt.ask('Project name:', default: project[:name], required: true)
+      updates[:slack_team_id] = @prompt.ask('Slack team ID:', default: project[:slack_team_id], required: true)
       updates[:slack_bot_token] = prompt_optional_mask('Slack bot token:', project[:slack_bot_token])
       updates[:github_token] = prompt_optional_mask('GitHub token:', project[:github_token])
       updates[:default_github_org] = @prompt.ask('Default GitHub org:', default: project[:default_github_org])
