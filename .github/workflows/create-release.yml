@@ -100,6 +100,25 @@ jobs:
       if: ${{ github.event.inputs.dry_run != 'true' }}
       run: bundle exec rake ci
 
+    - name: Generate changelog
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      id: changelog
+      run: |
+        VERSION="${{ steps.next_version.outputs.NEXT_VERSION }}"
+        bundle exec ruby -e "
+          require_relative 'lib/version_helper'
+          puts VersionHelper.generate_changelog_for_version('$VERSION')
+        " > changelog_body.txt
+
+        {
+          echo 'BODY<<EOF'
+          cat changelog_body.txt
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+
+        echo "Generated changelog:"
+        cat changelog_body.txt
+
     - name: Create tag
       if: ${{ github.event.inputs.dry_run != 'true' }}
       run: |
@@ -108,22 +127,6 @@ jobs:
         git tag -a "$VERSION_TAG" -m "Release version ${{ steps.next_version.outputs.NEXT_VERSION }}"
         git push origin "$VERSION_TAG"
         echo "Tag $VERSION_TAG pushed."
-
-    - name: Generate changelog
-      if: ${{ github.event.inputs.dry_run != 'true' }}
-      id: changelog
-      run: |
-        VERSION="${{ steps.next_version.outputs.NEXT_VERSION }}"
-        CHANGELOG_CONTENT=$(bundle exec ruby -e "
-          require_relative 'lib/version_helper'
-          puts VersionHelper.generate_changelog_for_version('$VERSION')
-        ")
-
-        {
-          echo 'BODY<<EOF'
-          echo "$CHANGELOG_CONTENT"
-          echo 'EOF'
-        } >> $GITHUB_OUTPUT
 
     - name: Build and package application
       if: ${{ github.event.inputs.dry_run != 'true' }}
