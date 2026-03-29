@@ -45,6 +45,7 @@ Ready to get started? Here's the fastest way to set up slack-github-threads:
 - 🔒 **Secure**: Uses environment variables for sensitive tokens
 - 🎯 **Smart Formatting**: Preserves message structure, usernames, and timestamps
 - 📱 **Multiple Interfaces**: Slash commands, message shortcuts, and global shortcuts
+- 🏢 **Multi-Project Support**: Connect multiple Slack workspaces to different GitHub repositories with encrypted configuration
 
 ### Why Use This Tool?
 
@@ -101,6 +102,7 @@ Create a `.env` file with the following variables:
 SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
 GITHUB_TOKEN=ghp_your-github-personal-access-token
 DEBUG=false  # Optional: set to 'true' for debug logging
+CONFIG_PASSPHRASE=  # Optional: passphrase to decrypt multi-project config (see Multi-Project Setup)
 ```
 
 ### Getting Tokens
@@ -154,6 +156,80 @@ You have two options for setting up your Slack app:
 2. Generate a new token with the following permissions:
    - `repo` (for private repositories) or `public_repo` (for public repositories only)
 3. Copy the generated token
+
+## Multi-Project Setup
+
+The app supports connecting multiple Slack workspaces to different GitHub repositories. Each workspace-repository pair is stored as a "project" in an encrypted configuration file.
+
+### How It Works
+
+When the app receives a request from Slack, it extracts the workspace's `team_id` from the payload and looks up the matching project configuration to find the correct Slack bot token and GitHub token. If no match is found, it falls back to the `SLACK_BOT_TOKEN` and `GITHUB_TOKEN` environment variables.
+
+This means existing single-project deployments require **no changes** -- they continue to work with just environment variables.
+
+### Managing Projects
+
+Use the interactive TUI (terminal user interface) to add, edit, remove, and list project integrations:
+
+```bash
+bundle exec rake config
+# or directly:
+bundle exec ruby bin/slack-gh-config
+```
+
+The TUI will guide you through:
+
+1. **Setting a passphrase** (first run) or **entering your passphrase** (subsequent runs)
+2. **Main menu** with options to:
+   - **Add project** -- provide a name, Slack team ID, Slack bot token, GitHub token, and optional default GitHub org
+   - **Edit project** -- update any field of an existing project
+   - **Remove project** -- delete a project configuration
+   - **List projects** -- display all configured projects in a table (tokens are masked)
+
+### Finding Your Slack Team ID
+
+Your Slack team ID (e.g., `T12345ABC`) can be found in:
+- The URL when viewing your workspace in a browser: `https://app.slack.com/client/T12345ABC/...`
+- Slack Admin Settings > About this workspace
+
+### Running the App in Multi-Project Mode
+
+Set the `CONFIG_PASSPHRASE` environment variable so the app can decrypt the configuration on startup:
+
+```bash
+CONFIG_PASSPHRASE=your-passphrase bundle exec ruby app.rb
+```
+
+Or add it to your `.env` file:
+
+```env
+CONFIG_PASSPHRASE=your-passphrase
+```
+
+### Encrypted Configuration
+
+The project configuration is stored at `.config/projects.enc`, which is:
+
+- **Encrypted at rest** using AES-256-GCM with a passphrase-derived key (PBKDF2, 100,000 iterations)
+- **Git-ignored** by default (`.config/` is in `.gitignore`)
+- **Authenticated** -- any tampering with the file is detected automatically
+
+### Docker and Kamal Deployments
+
+For containerized deployments, you need to:
+
+1. Mount or copy the `.config/projects.enc` file into the container
+2. Set `CONFIG_PASSPHRASE` as an environment variable or secret
+
+Example with Docker:
+
+```bash
+docker run -p 3000:3000 \
+  -v $(pwd)/.config:/app/.config \
+  -e CONFIG_PASSPHRASE=your-passphrase \
+  --env-file .env \
+  slack-github-threads
+```
 
 ## Usage
 
@@ -244,9 +320,16 @@ docker run -p 3000:3000 --env-file .env slack-github-threads
 ├── Gemfile                     # Ruby dependencies
 ├── Dockerfile                  # Docker configuration
 ├── Rakefile                    # Task definitions and test runner
+├── bin/
+│   └── slack-gh-config         # TUI for managing multi-project config
 ├── docs/                       # Documentation and configuration
 │   └── app-manifest.json       # Slack app manifest for easy setup
 ├── lib/                        # Application modules
+│   ├── cli/
+│   │   └── tui.rb              # Interactive TUI for project management
+│   ├── config/
+│   │   ├── encryption.rb       # AES-256-GCM encryption utilities
+│   │   └── project_config.rb   # Multi-project configuration model
 │   ├── services/               # Business logic services
 │   │   ├── slack_service.rb    # Slack API interactions
 │   │   ├── github_service.rb   # GitHub API interactions
@@ -257,10 +340,12 @@ docker run -p 3000:3000 --env-file .env slack-github-threads
 ├── test/                       # Test suite
 │   ├── test_helper.rb          # Test configuration and helpers
 │   ├── test_app.rb             # Integration tests
+│   ├── test_multi_project.rb   # Multi-project routing tests
+│   ├── cli/                    # CLI/TUI tests
+│   ├── config/                 # Encryption and config tests
 │   └── services/               # Service unit tests
-│       ├── test_slack_service.rb
-│       ├── test_github_service.rb
-│       └── test_text_processor.rb
+├── .config/                    # Encrypted project config (git-ignored)
+│   └── projects.enc            # AES-256-GCM encrypted YAML
 ├── config/
 │   └── deploy.yml.example      # Kamal deployment configuration template
 └── .kamal/
@@ -419,6 +504,8 @@ See [docs/CONVENTIONAL_COMMITS.md](docs/CONVENTIONAL_COMMITS.md) for detailed co
 - Use environment variables for all sensitive data
 - Regularly rotate your API tokens
 - Use HTTPS in production
+- Multi-project config is encrypted at rest with AES-256-GCM; the `.config/` directory is git-ignored
+- Choose a strong passphrase for your config encryption; store `CONFIG_PASSPHRASE` securely in your deployment secrets
 
 ## License
 
