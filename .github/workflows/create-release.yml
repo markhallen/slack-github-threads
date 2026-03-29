@@ -128,13 +128,15 @@ jobs:
     - name: Build and package application
       if: ${{ github.event.inputs.dry_run != 'true' }}
       run: |
-        tar -czf slack-github-threads-v${{ steps.next_version.outputs.NEXT_VERSION }}.tar.gz \
+        ARCHIVE="slack-github-threads-v${{ steps.next_version.outputs.NEXT_VERSION }}.tar.gz"
+        tar -czf "/tmp/$ARCHIVE" \
           --exclude='.git*' \
           --exclude='test/' \
           --exclude='log/*.log' \
           --exclude='.env*' \
           --exclude='tmp/' \
           .
+        mv "/tmp/$ARCHIVE" .
 
     - name: Create GitHub Release
       if: ${{ github.event.inputs.dry_run != 'true' }}
