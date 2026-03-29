@@ -21,17 +21,19 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
-  create-release:
+  release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next_version.outputs.NEXT_VERSION }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        token: ${{ secrets.ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
@@ -48,11 +50,9 @@ jobs:
       id: release_type
       run: |
         if [ "${{ github.event.inputs.release_type }}" = "auto" ]; then
-          # Run preview to get suggested release type
           PREVIEW_OUTPUT=$(bundle exec rake release:preview)
           echo "$PREVIEW_OUTPUT"
 
-          # Extract suggested release type from output
           SUGGESTED_TYPE=$(echo "$PREVIEW_OUTPUT" | grep "Suggested release type:" | awk '{print $NF}')
 
           if [ -z "$SUGGESTED_TYPE" ]; then
@@ -100,34 +100,52 @@ jobs:
       if: ${{ github.event.inputs.dry_run != 'true' }}
       run: bundle exec rake ci
 
-    - name: Create release and tag
+    - name: Create tag
       if: ${{ github.event.inputs.dry_run != 'true' }}
       run: |
-        echo "🚀 Creating ${{ steps.release_type.outputs.RELEASE_TYPE }} release..."
-        
-        # Generate changelog content without committing
         VERSION_TAG="v${{ steps.next_version.outputs.NEXT_VERSION }}"
-        echo "📝 Generating changelog for $VERSION_TAG..."
-        CHANGELOG_CONTENT=$(bundle exec ruby scripts/version.rb next ${{ steps.release_type.outputs.RELEASE_TYPE }} | xargs -I {} bundle exec rake release:changelog[{}] 2>/dev/null || echo "Changelog generation failed")
-        
-        # Create tag directly (without committing changelog to main)
-        echo "🏷️ Creating tag $VERSION_TAG..."
+        echo "Creating tag $VERSION_TAG..."
         git tag -a "$VERSION_TAG" -m "Release version ${{ steps.next_version.outputs.NEXT_VERSION }}"
-        
-        echo "✅ Tag $VERSION_TAG created successfully!"
+        git push origin "$VERSION_TAG"
+        echo "Tag $VERSION_TAG pushed."
 
-    - name: Push changes and tag
+    - name: Generate changelog
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      id: changelog
+      run: |
+        VERSION="${{ steps.next_version.outputs.NEXT_VERSION }}"
+        CHANGELOG_CONTENT=$(bundle exec ruby -e "
+          require_relative 'lib/version_helper'
+          puts VersionHelper.generate_changelog_for_version('$VERSION')
+        ")
+
+        {
+          echo 'BODY<<EOF'
+          echo "$CHANGELOG_CONTENT"
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+
+    - name: Build and package application
       if: ${{ github.event.inputs.dry_run != 'true' }}
       run: |
-        VERSION_TAG="v${{ steps.next_version.outputs.NEXT_VERSION }}"
-        echo "📤 Creating and pushing tag $VERSION_TAG to GitHub..."
-        
-        # Only push the version tag (this will trigger the release.yml workflow)
-        # We don't need to push to main since the tag creation doesn't require it
-        git push origin "$VERSION_TAG"
-        
-        echo "✅ Successfully pushed tag $VERSION_TAG"
-        echo "🎯 The release.yml workflow will now create the GitHub release automatically"
+        tar -czf slack-github-threads-v${{ steps.next_version.outputs.NEXT_VERSION }}.tar.gz \
+          --exclude='.git*' \
+          --exclude='test/' \
+          --exclude='log/*.log' \
+          --exclude='.env*' \
+          --exclude='tmp/' \
+          .
+
+    - name: Create GitHub Release
+      if: ${{ github.event.inputs.dry_run != 'true' }}
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.next_version.outputs.NEXT_VERSION }}
+        name: Release v${{ steps.next_version.outputs.NEXT_VERSION }}
+        body: ${{ steps.changelog.outputs.BODY }}
+        files: slack-github-threads-v${{ steps.next_version.outputs.NEXT_VERSION }}.tar.gz
+        draft: false
+        prerelease: false
 
     - name: Output summary
       if: ${{ github.event.inputs.dry_run != 'true' }}
@@ -137,11 +155,6 @@ jobs:
         echo "- **Version**: v${{ steps.next_version.outputs.NEXT_VERSION }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Type**: ${{ steps.release_type.outputs.RELEASE_TYPE }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Tag**: v${{ steps.next_version.outputs.NEXT_VERSION }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### What happens next?" >> $GITHUB_STEP_SUMMARY
-        echo "1. 🚀 The release.yml workflow is now running" >> $GITHUB_STEP_SUMMARY
-        echo "2. 📦 GitHub release will be created automatically" >> $GITHUB_STEP_SUMMARY
-        echo "3. 🌐 Monitor progress at: https://github.com/${{ github.repository }}/actions" >> $GITHUB_STEP_SUMMARY
 
     - name: Output dry run summary
       if: ${{ github.event.inputs.dry_run == 'true' }}
@@ -152,3 +165,35 @@ jobs:
         echo "- **Release type**: ${{ steps.release_type.outputs.RELEASE_TYPE }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "To create the actual release, run this workflow again without dry run mode." >> $GITHUB_STEP_SUMMARY
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ github.event.inputs.dry_run != 'true' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:${{ needs.release.outputs.version }}
+          ghcr.io/${{ github.repository }}:latest
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.version=${{ needs.release.outputs.version }}
+          org.opencontainers.image.revision=${{ github.sha }}
